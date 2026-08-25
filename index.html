@@ -98,26 +98,6 @@
         .header-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
         .header-subtitle { font-size: 13px; color: var(--text-muted); }
 
-        .weather-widget {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg-tertiary);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .weather-alert {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-        }
-
         .theme-toggle {
             width: 44px;
             height: 44px;
@@ -314,14 +294,6 @@
             border-radius: 2px;
         }
 
-        .legend-circle {
-            width: 100px;
-            height: 10px;
-            border-radius: 50%;
-            border: 2px solid #1e3a8a;
-            background: #ffffff;
-        }
-
         .info-sidebar {
             width: 0;
             height: 100%;
@@ -375,41 +347,6 @@
         .detail-label { color: var(--text-muted); font-size: 12px; }
         .detail-value { font-weight: 600; font-size: 12px; }
 
-        .simulation-container {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 6px;
-        }
-
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .rain-slider {
-            width: 100%;
-            accent-color: #2563eb;
-            cursor: pointer;
-        }
-
-        .depth-chart-container {
-            width: 100%;
-            height: 85px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            padding: 4px;
-            margin-top: 8px;
-            border: 1px solid var(--border);
-            position: relative;
-        }
-
-        .depth-chart-svg { width: 100%; height: 100%; display: block; }
-
         .btn-action {
             width: 100%;
             padding: 10px;
@@ -462,36 +399,6 @@
         }
         .gallery-thumb:hover { transform: scale(1.04); }
 
-        /* BOTONES DE CÁMARAS / MAPS */
-        .cameras-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .btn-maps {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .btn-maps:hover {
-            border-color: #4285F4;
-            color: #4285F4;
-            background: var(--bg-primary);
-        }
-
         /* MODAL / LIGHTBOX PARA VER FOTOS */
         .lightbox-modal {
             position: fixed;
@@ -540,42 +447,6 @@
             background: var(--bg-secondary);
         }
 
-        /* Estilos del botón flotante de WhatsApp */
-.whatsapp-float {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 56px;
-    height: 56px;
-    background-color: #25D366;
-    color: #FFF;
-    border-radius: 50px;
-    text-align: center;
-    font-size: 30px;
-    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
-    z-index: 9000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.whatsapp-float:hover {
-    transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
-}
-
-/* Ajuste responsivo para celulares */
-@media (max-width: 768px) {
-    .whatsapp-float {
-        bottom: 15px;
-        right: 15px;
-        width: 50px;
-        height: 50px;
-        font-size: 26px;
-    }
-}
     </style>
 </head>
 <body>
@@ -592,11 +463,6 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 15px;">
-            <div class="weather-widget">
-                <span class="weather-alert"></span>
-                <span id="weather-info"><i class="fa-solid fa-cloud-sun-rain"></i> Cargando clima...</span>
-            </div>
-
             <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
                 <i class="fa-solid fa-moon" id="theme-icon"></i>
             </button>
@@ -610,7 +476,6 @@
                 <div><span class="stat-number" id="total-desagues">0</span><div class="stat-text">Colectores</div></div>
                 <div><span class="stat-number" id="total-subterraneos">0</span><div class="stat-text">Subterráneos</div></div>
                 <div><span class="stat-number" id="total-kilometros">0</span><div class="stat-text">Km Totales</div></div>
-                <div><span class="stat-number" id="total-camaras">0</span><div class="stat-text">Sumideros</div></div>
             </div>
         </div>
     </div>
@@ -626,26 +491,8 @@
                 </div>
 
                 <div class="toolbar-group">
-                    <span class="toolbar-title">Riesgo:</span>
-                    <select id="filter-risk" class="toolbar-select" onchange="applyAdvancedFilters()">
-                        <option value="all">Todos</option>
-                        <option value="high">Crítico</option>
-                        <option value="medium">Medio</option>
-                        <option value="normal">Normal</option>
-                    </select>
-
-                    <span class="toolbar-title" style="margin-left: 5px;">Caudal Mín:</span>
-                    <select id="filter-caudal" class="toolbar-select" onchange="applyAdvancedFilters()">
-                        <option value="0">Todos</option>
-                        <option value="200">> 200 L/s</option>
-                        <option value="400">> 400 L/s</option>
-                    </select>
-                </div>
-
-                <div class="toolbar-group">
                     <span class="toolbar-title">Capas:</span>
                     <button class="filter-chip active" id="layer-btn-lines" onclick="toggleMapLayer('lines')"><i class="fa-solid fa-route"></i> Red</button>
-                    <button class="filter-chip active" id="layer-btn-nodes" onclick="toggleMapLayer('nodes')"><i class="fa-solid fa-circle-dot"></i> Cámaras</button>
                 </div>
 
                 <div class="toolbar-group">
@@ -653,10 +500,6 @@
                     <button class="filter-chip active" id="btn-map-street" onclick="switchBaseMap('street')">Callejero</button>
                     <button class="filter-chip" id="btn-map-sat" onclick="switchBaseMap('sat')">Satelital</button>
                     <button class="filter-chip" id="btn-map-topo" onclick="switchBaseMap('topo')">Relieve</button>
-                    
-                    <button class="filter-chip" onclick="locateUser()" title="Ubicarme en el mapa">
-                        <i class="fa-solid fa-location-crosshairs"></i> Mi Ubicación
-                    </button>
                 </div>
             </div>
 
@@ -667,7 +510,7 @@
                     <!-- BUSCADOR CON GEOCODIFICACIÓN -->
                     <div class="map-search-box">
                         <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted)"></i>
-                        <input type="text" id="map-search-input" placeholder="Buscar canal, cámara o calle en Río III..." oninput="debounceSearch(this.value)">
+                        <input type="text" id="map-search-input" placeholder="Buscar desagüe..." oninput="debounceSearch(this.value)">
                         <div class="map-search-results" id="map-search-results"></div>
                     </div>
 
@@ -681,10 +524,6 @@
                         <div class="legend-item">
                             <span class="legend-color" style="background-color: #22c55e;"></span>
                             <span>Canal Superficial</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-circle"></span>
-                            <span>Cámara / Sumidero</span>
                         </div>
                     </div>
 
@@ -705,37 +544,8 @@
                         </div>
                     </div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Nivel de Riesgo</span>
-                        <span id="sidebar-risk" style="font-weight:700; font-size:11px; text-transform:uppercase;">Normal</span>
-                    </div>
                     <div class="detail-row"><span class="detail-label">Longitud</span><span class="detail-value" id="sidebar-largo">--</span></div>
                     <div class="detail-row"><span class="detail-label">Pendiente Terreno</span><span class="detail-value" id="sidebar-pendiente">--</span></div>
-                    <div class="detail-row"><span class="detail-label">Material / Conducción</span><span class="detail-value" id="sidebar-material">--</span></div>
-                    <div class="detail-row"><span class="detail-label">Caudal Máximo</span><span class="detail-value" id="sidebar-caudal">--</span></div>
-
-                    <!-- SIMULADOR DINÁMICO DE TORMENTA -->
-                    <div class="simulation-container">
-                        <div class="slider-label">
-                            <span><i class="fa-solid fa-cloud-showers-heavy"></i> Simulación de Lluvia</span>
-                            <span id="rain-value" style="color:#2563eb;">20 mm/h</span>
-                        </div>
-                        <input type="range" min="10" max="120" value="20" class="rain-slider" id="rain-slider" oninput="updateRainSimulation(this.value)">
-                        
-                        <div class="depth-chart-container">
-                            <svg class="depth-chart-svg" viewBox="0 0 100 50" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#2563eb" stop-opacity="0.8"/>
-                                        <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.3"/>
-                                    </linearGradient>
-                                </defs>
-                                <path id="terrain-line" d="M 0 10 Q 50 8 100 12" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="2,2" />
-                                <path id="depth-area" fill="url(#waterGrad)" d="M 0 50 Q 50 50 100 50 Z" />
-                                <path id="depth-curve" fill="none" stroke="#2563eb" stroke-width="2.5" d="M 0 50 Q 50 50 100 50" />
-                            </svg>
-                        </div>
-                    </div>
 
                     <button class="btn-action btn-action-outline" onclick="exportPDF()">
                         <i class="fa-solid fa-file-pdf"></i> Exportar Ficha Técnica PDF
@@ -746,28 +556,10 @@
                     <div class="gallery-grid" id="sidebar-gallery">
                         <!-- Se puebla dinámicamente -->
                     </div>
-
-                    <!-- NUEVA SECCIÓN: UBICACIÓN EN MAPS DE CÁMARAS -->
-                    <div class="section-title-sm"><i class="fa-solid fa-map-pin"></i> Ubicación de Cámaras / Sumideros</div>
-                    <div class="cameras-list" id="sidebar-cameras">
-                        <!-- Se puebla dinámicamente -->
-                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Requiere FontAwesome cargado en el <head> para el ícono: -->
-<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" /> -->
-
-<a href="https://wa.me/5493571000000?text=Hola,%20me%20comunico%20desde%20la%20web" 
-class="whatsapp-float" 
-target="_blank" 
-rel="noopener noreferrer"
-aria-label="Contactar por WhatsApp"
-title="Contactar por WhatsApp">
- <i class="fa-brands fa-whatsapp"></i>
-</a>
 
     <!-- MODAL PARA VER FOTO EXPANDIDA -->
     <div class="lightbox-modal" id="lightbox" onclick="closeLightbox()">
@@ -838,15 +630,15 @@ title="Contactar por WhatsApp">
         const colores = { subterraneo: '#ef4444', superficial: '#22c55e' };
         let activeFilter = 'all';
         let layers = [], nodeMarkers = [], decorators = [];
-        let showLines = true, showNodes = true;
-        let userMarker = null, currentSelected = null, searchTimeout = null;
+        let showLines = true;
+        let currentSelected = null, searchTimeout = null;
 
         const map = L.map('map', { zoomControl: true }).setView([-32.175, -64.115], 13);
 
         const baseLayers = {
             street: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }),
             sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
-            topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 })
+            topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
         };
         baseLayers.street.addTo(map);
 
@@ -863,14 +655,9 @@ title="Contactar por WhatsApp">
             if (layerType === 'lines') {
                 showLines = !showLines;
                 document.getElementById('layer-btn-lines').classList.toggle('active', showLines);
-            } else if (layerType === 'nodes') {
-                showNodes = !showNodes;
-                document.getElementById('layer-btn-nodes').classList.toggle('active', showNodes);
             }
             renderDesagues();
         }
-
-        function applyAdvancedFilters() { renderDesagues(); }
 
         function renderDesagues() {
             layers.forEach(l => map.removeLayer(l));
@@ -878,17 +665,7 @@ title="Contactar por WhatsApp">
             decorators.forEach(d => map.removeLayer(d));
             layers = []; nodeMarkers = []; decorators = [];
 
-            const riskVal = document.getElementById('filter-risk').value;
-            const caudalVal = parseFloat(document.getElementById('filter-caudal').value);
-
-            const filtered = desagues.filter(d => {
-                const matchTipo = activeFilter === 'all' || d.tipo === activeFilter;
-                const matchRiesgo = riskVal === 'all' || d.riesgo === riskVal;
-                const matchCaudal = d.caudal >= caudalVal;
-                return matchTipo && matchRiesgo && matchCaudal;
-            });
-
-            let totalCamaras = 0;
+            const filtered = desagues.filter(d => activeFilter === 'all' || d.tipo === activeFilter);
 
             filtered.forEach(desague => {
                 if (showLines) {
@@ -908,27 +685,18 @@ title="Contactar por WhatsApp">
                     const clickHandler = () => selectDesague(desague);
                     line.on('click', clickHandler);
                     flowLine.on('click', clickHandler);
-                    line.bindTooltip(`<b>${desague.nombre}</b><br>${desague.largo}m | ${desague.material}`, { sticky: true });
+                    line.bindTooltip(`<b>${desague.nombre}</b><br>${desague.largo} m`, { sticky: true });
 
                     layers.push(line, flowLine);
                 }
-
-                if (showNodes) {
-                    desague.puntos.forEach((pt, idx) => {
-                        totalCamaras++;
-                        const node = L.circleMarker(pt, { radius: 4, color: '#1e3a8a', fillColor: '#ffffff', fillOpacity: 1, weight: 2 }).addTo(map);
-                        node.bindTooltip(`Cámara #${idx+1}`, { direction: 'top' });
-                        nodeMarkers.push(node);
-                    });
-                }
             });
 
-            updateStats(filtered, totalCamaras);
+            updateStats(filtered);
         }
 
         function calculateSlope(desague) {
-            if (!desague.zInicio || !desague.zFin) return "N/D";
-            return (((desague.zInicio - desague.zFin) / desague.largo) * 100).toFixed(2) + " %";
+            if (desague.zInicio == null || desague.zFin == null) return "N/D";
+            return (desague.zInicio - desague.zFin).toFixed(1) + " m";
         }
 
         function selectDesague(desague) {
@@ -943,12 +711,6 @@ title="Contactar por WhatsApp">
             document.getElementById('sidebar-desc').textContent = desague.descripcion || "Sin descripción disponible.";
             document.getElementById('sidebar-largo').textContent = desague.largo + ' m';
             document.getElementById('sidebar-pendiente').textContent = calculateSlope(desague);
-            document.getElementById('sidebar-material').textContent = desague.material;
-            document.getElementById('sidebar-caudal').textContent = desague.caudal + ' L/s';
-
-            const riskEl = document.getElementById('sidebar-risk');
-            riskEl.style.color = desague.riesgo === 'high' ? '#dc2626' : (desague.riesgo === 'medium' ? '#ca8a04' : '#16a34a');
-            riskEl.textContent = desague.riesgo === 'high' ? 'Crítico' : (desague.riesgo === 'medium' ? 'Medio' : 'Normal');
 
             // Cargar Galería
             const galleryContainer = document.getElementById('sidebar-gallery');
@@ -964,27 +726,6 @@ title="Contactar por WhatsApp">
             } else {
                 galleryContainer.innerHTML = '<span style="font-size:11px; color:var(--text-muted); grid-column:span 3;">No hay imágenes cargadas.</span>';
             }
-
-            // Cargar Botones Google Maps para cada cámara
-            const camerasContainer = document.getElementById('sidebar-cameras');
-            camerasContainer.innerHTML = '';
-            desague.puntos.forEach((pt, idx) => {
-                const lat = pt[0];
-                const lng = pt[1];
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-                
-                const a = document.createElement('a');
-                a.className = 'btn-maps';
-                a.href = mapsUrl;
-                a.target = '_blank';
-                a.innerHTML = `
-                    <span><i class="fa-solid fa-location-crosshairs"></i> Ver ubicación en Maps de Cámara #${idx + 1}</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                `;
-                camerasContainer.appendChild(a);
-            });
-
-            updateRainSimulation(document.getElementById('rain-slider').value);
 
             sidebar.classList.add('open');
             document.getElementById('reset-btn').classList.add('visible');
@@ -1002,33 +743,18 @@ title="Contactar por WhatsApp">
             document.getElementById('lightbox').classList.remove('open');
         }
 
-        function updateRainSimulation(mmValue) {
-            document.getElementById('rain-value').textContent = `${mmValue} mm/h`;
-            if (!currentSelected) return;
-
-            const factor = Math.min(1.0, (mmValue / 120));
-            const peakY = Math.max(12, 48 - (factor * 32));
-
-            const curvePath = `M 0 10 Q 50 ${peakY} 100 12`;
-            const areaPath = `${curvePath} L 100 50 L 0 50 Z`;
-
-            document.getElementById('depth-curve').setAttribute('d', curvePath);
-            document.getElementById('depth-area').setAttribute('d', areaPath);
-            document.getElementById('depth-curve').style.stroke = mmValue > 80 ? '#dc2626' : colores[currentSelected.tipo];
-        }
-
         function debounceSearch(val) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => executeSearch(val), 350);
         }
 
-        async function executeSearch(q) {
+        function executeSearch(q) {
             const resultsEl = document.getElementById('map-search-results');
             const query = q.trim();
             if (!query) return resultsEl.classList.remove('visible');
 
             let html = '';
-            
+
             const localMatches = desagues.filter(d => d.nombre.toLowerCase().includes(query.toLowerCase()));
             localMatches.forEach(d => {
                 html += `
@@ -1038,25 +764,6 @@ title="Contactar por WhatsApp">
                     </div>`;
             });
 
-            if (query.length > 3) {
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Rio Tercero, Cordoba, Argentina')}&limit=3`);
-                    const data = await res.json();
-                    
-                    data.forEach(item => {
-                        const lat = parseFloat(item.lat);
-                        const lon = parseFloat(item.lon);
-                        html += `
-                            <div class="map-search-result-item" onclick="goToLocation(${lat}, ${lon}, '${item.display_name.replace(/'/g, "\\'")}'); document.getElementById('map-search-results').classList.remove('visible');">
-                                <span><i class="fa-solid fa-location-dot" style="color:#2563eb"></i> ${item.display_name.split(',')[0]}</span>
-                                <small style="color:var(--text-muted)">Calle / Dirección</small>
-                            </div>`;
-                    });
-                } catch (err) {
-                    console.error("Error geocodificación:", err);
-                }
-            }
-
             if (html) {
                 resultsEl.innerHTML = html;
                 resultsEl.classList.add('visible');
@@ -1064,33 +771,6 @@ title="Contactar por WhatsApp">
                 resultsEl.classList.remove('visible');
             }
         }
-
-        function goToLocation(lat, lon, label) {
-            map.setView([lat, lon], 17);
-            if (userMarker) map.removeLayer(userMarker);
-            userMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>${label}</b>`).openPopup();
-            document.getElementById('reset-btn').classList.add('visible');
-        }
-
-        async function fetchWeather() {
-            try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-32.175&longitude=-64.115&current_weather=true');
-                const data = await res.json();
-                if (data && data.current_weather) {
-                    const temp = Math.round(data.current_weather.temperature);
-                    document.getElementById('weather-info').innerHTML = `<i class="fa-solid fa-temperature-half"></i> Río III: ${temp}°C`;
-                }
-            } catch (e) {
-                document.getElementById('weather-info').textContent = "Río Tercero: Normal";
-            }
-        }
-        fetchWeather();
-
-        function locateUser() { map.locate({ setView: true, maxZoom: 16 }); }
-        map.on('locationfound', function(e) {
-            if (userMarker) map.removeLayer(userMarker);
-            userMarker = L.marker(e.latlng).addTo(map).bindPopup("<b>Ubicación Actual</b>").openPopup();
-        });
 
         function resetView() {
             document.getElementById('info-sidebar').classList.remove('open');
@@ -1100,43 +780,38 @@ title="Contactar por WhatsApp">
             map.fitBounds(L.latLngBounds(allPts), { padding: [30, 30] });
         }
 
-        function updateStats(filtered, camaras) {
+        function updateStats(filtered) {
             document.getElementById('total-desagues').textContent = filtered.length;
             document.getElementById('total-subterraneos').textContent = filtered.filter(d => d.tipo === 'subterraneo').length;
             document.getElementById('total-kilometros').textContent = (filtered.reduce((a, b) => a + b.largo, 0) / 1000).toFixed(1);
-            document.getElementById('total-camaras').textContent = camaras;
         }
 
         async function exportPDF() {
             if (!currentSelected) return;
-            const mapElement = document.getElementById('map');
             try {
-                const currentBounds = L.latLngBounds(currentSelected.puntos);
-                map.fitBounds(currentBounds, { padding: [80, 80], animate: false });
-                await new Promise(r => setTimeout(r, 300));
-
-                const canvas = await html2canvas(mapElement, { useCORS: true, allowTaint: true, scale: 2 });
-                const mapImgData = canvas.toDataURL('image/jpeg', 0.95);
+                const tipoLabel = currentSelected.tipo === 'subterraneo' ? 'Subterráneo' : 'Superficial';
+                const cellStyle = 'padding:7px 0; border-bottom:1px solid #e5e7eb;';
+                const imgUrl = currentSelected.galeria && currentSelected.galeria.length > 0 ? currentSelected.galeria[0] : null;
 
                 const pdfContainer = document.createElement('div');
                 pdfContainer.style.padding = '30px';
                 pdfContainer.style.fontFamily = 'Inter, sans-serif';
+                pdfContainer.style.color = '#111827';
                 pdfContainer.innerHTML = `
-                    <h2 style="color:#1e40af; border-bottom:2px solid #2563eb;">MUNICIPALIDAD DE RÍO TERCERO</h2>
-                    <h3>Ficha Técnica: ${currentSelected.nombre}</h3>
-                    <p>${currentSelected.descripcion}</p>
-                    <img src="${mapImgData}" style="width:100%; max-height:300px; object-fit:contain; border-radius:8px; margin:15px 0;" />
-                    <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                        <tr><td style="padding:4px 0;">Tipo:</td><td><b>${currentSelected.tipo}</b></td></tr>
-                        <tr><td style="padding:4px 0;">Material:</td><td><b>${currentSelected.material}</b></td></tr>
-                        <tr><td style="padding:4px 0;">Longitud:</td><td><b>${currentSelected.largo}m</b></td></tr>
-                        <tr><td style="padding:4px 0;">Caudal Máx:</td><td><b>${currentSelected.caudal} L/s</b></td></tr>
+                    <h2 style="color:#1e40af; border-bottom:2px solid #2563eb; padding-bottom:8px;">MUNICIPALIDAD DE RÍO TERCERO</h2>
+                    <h3 style="margin-top:12px;">Ficha Técnica: ${currentSelected.nombre}</h3>
+                    <p style="color:#374151; font-size:13px;">${currentSelected.descripcion || ''}</p>
+                    ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:15px 0; border:1px solid #e5e7eb; display:block;" />` : ''}
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <tr><td style="${cellStyle} color:#6b7280;">Tipo</td><td style="${cellStyle} text-align:right;"><b>${tipoLabel}</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Longitud</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.largo} m</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Profundidad</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.profundidad} m</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Pendiente del Terreno</td><td style="${cellStyle} text-align:right;"><b>${calculateSlope(currentSelected)}</b></td></tr>
                     </table>
                 `;
 
                 const opt = { margin: 10, filename: `Ficha_Desague_${currentSelected.id}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } };
                 await html2pdf().set(opt).from(pdfContainer).save();
-                map.fitBounds(currentBounds, { padding: [50, 50] });
             } catch (e) { console.error("Error PDF:", e); }
         }
 
