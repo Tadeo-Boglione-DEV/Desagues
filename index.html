@@ -7,12 +7,12 @@
     <link rel="icon" type="image/png" href="img/favicon.png">
 
     <!-- Leaflet, FontAwesome & Google Fonts -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- LEAFLET BASE Y EXTENSIONES -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js"></script>
 
     <!-- EXPORTACIÓN PDF / CANVAS -->
@@ -354,13 +354,28 @@
         .detail-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 10px;
             padding: 6px 0;
             border-bottom: 1px solid var(--border);
         }
 
-        .detail-label { color: var(--text-muted); font-size: 12px; }
-        .detail-value { font-weight: 600; font-size: 12px; }
+        .detail-label { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+        .detail-value { font-weight: 600; font-size: 12px; word-break: break-word; }
+
+        .approx-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(234, 179, 8, 0.12);
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            color: #a16207;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        [data-theme="dark"] .approx-note { color: #fbbf24; }
 
         .btn-action {
             width: 100%;
@@ -553,9 +568,10 @@
         <div class="hero-content">
             <h1>Sistema de Desagües Pluviales</h1>
             <div class="stats-bar">
-                <div><span class="stat-number" id="total-desagues">0</span><div class="stat-text">Colectores</div></div>
+                <div><span class="stat-number" id="total-desagues">0</span><div class="stat-text">Desagües</div></div>
                 <div><span class="stat-number" id="total-subterraneos">0</span><div class="stat-text">Subterráneos</div></div>
                 <div><span class="stat-number" id="total-kilometros">0</span><div class="stat-text">Km Totales</div></div>
+                <div><span class="stat-number" id="total-lagunas">0</span><div class="stat-text">Lagunas de Retención</div></div>
             </div>
         </div>
     </div>
@@ -568,6 +584,7 @@
                     <button class="filter-chip active" data-filter="all">Todos</button>
                     <button class="filter-chip" data-filter="subterraneo">Subterráneos</button>
                     <button class="filter-chip" data-filter="superficial">Superficiales</button>
+                    <button class="filter-chip" data-filter="lagunas">Lagunas de Retención</button>
                 </div>
 
                 <div class="toolbar-group">
@@ -610,6 +627,10 @@
                             <span class="legend-color" style="background-color: #22c55e;"></span>
                             <span>Canal Superficial</span>
                         </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #eab308; border-radius: 50%; width: 10px; height: 10px;"></span>
+                            <span>Laguna de Retención</span>
+                        </div>
                     </div>
 
                     <button class="map-reset-btn" id="reset-btn" onclick="resetView()">
@@ -629,9 +650,15 @@
                         </div>
                     </div>
 
+                    <div class="approx-note" id="sidebar-approx-note" style="display:none;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Ubicación aproximada (pendiente relevamiento GPS de precisión)
+                    </div>
+
+                    <div class="detail-row"><span class="detail-label">Tramo</span><span class="detail-value" id="sidebar-tramo" style="text-align:right; max-width:65%;">--</span></div>
                     <div class="detail-row"><span class="detail-label">Longitud</span><span class="detail-value" id="sidebar-largo">--</span></div>
-                    <div class="detail-row"><span class="detail-label">Sección / Material</span><span class="detail-value" id="sidebar-material">--</span></div>
-                    <div class="detail-row"><span class="detail-label">Pendiente Terreno</span><span class="detail-value" id="sidebar-pendiente">--</span></div>
+                    <div class="detail-row"><span class="detail-label">Material</span><span class="detail-value" id="sidebar-material">--</span></div>
+                    <div class="detail-row"><span class="detail-label">Dimensión / Sección</span><span class="detail-value" id="sidebar-dimension">--</span></div>
+                    <div class="detail-row"><span class="detail-label">Sentido de escurrimiento</span><span class="detail-value" id="sidebar-sentido" style="text-align:right; max-width:65%;">--</span></div>
 
                     <button class="btn-action btn-action-outline" onclick="exportPDF()">
                         <i class="fa-solid fa-file-pdf"></i> Exportar Ficha Técnica PDF
@@ -661,969 +688,1227 @@
         // Datos importados desde desague.kml (relevamiento municipal de la red de desagües)
         const desagues = [
     {
-        "id": 9,
-        "nombre": "Esperanza",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.70 m².",
+        "id": "1a",
+        "nombre": "Canal Oeste (Sur)",
+        "tipo": "superficial",
+        "tramo": "Tramo sur hasta Av. Savio",
+        "material": "Tierra",
+        "dimension": "4,00 m",
+        "largo": 2500,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.192811,
+                -64.165661
+            ],
+            [
+                -32.1697688,
+                -64.165436
+            ]
+        ],
+        "galeria": []
+    },
+    {
+        "id": "1b",
+        "nombre": "Canal Oeste (Norte)",
+        "tipo": "superficial",
+        "tramo": "Tramo norte desde Av. Savio hacia el norte",
+        "material": "Tierra / Hormigón",
+        "dimension": "Ancho variable 6 a 8 m",
+        "largo": 1800,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.1697688,
+                -64.165436
+            ],
+            [
+                -32.152335, -64.165210
+            ]
+        ],
+        "galeria": []
+    },
+    {
+        "id": "2",
+        "nombre": "Avenida Savio",
         "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.70 m²",
-        "largo": 603,
+        "tramo": "Desde canal Oeste hasta Interfábrica",
+        "material": "Metálico",
+        "dimension": "Diám. 0,80 m",
+        "largo": 1100,
+        "sentido": "Este a Oeste",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1829032515737,
-                -64.1184141031956
+                -32.1697917,
+                -64.1533902
             ],
             [
-                -32.1883287513747,
-                -64.1184289956329
+                -32.1697688,
+                -64.165436
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/canal-marcos-juarez/dji-20260827093743-0779-d.webp",
+            "img/barrios/canal-marcos-juarez/dji-20260827093759-0780-d.webp",
+            "img/barrios/canal-marcos-juarez/dji-20260827093802-0781-d.webp"
+        ]
     },
     {
-        "id": 10,
-        "nombre": "Canal Sur",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
+        "id": "3",
+        "nombre": "Petroquiímica",
         "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 2234,
+        "tramo": "Desde Av. Savio hacia el norte",
+        "material": "Tierra",
+        "dimension": "3,00m",
+        "largo": 650,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1883269189647,
-                -64.1184300451638
+                -32.169814,
+                -64.153392
             ],
             [
-                -32.1907516121619,
-                -64.1419979518502
+                -32.155091, -64.153145
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/canal-pq/dji-20260827093649-0778-d.webp"
+        ]
     },
     {
-        "id": 11,
-        "nombre": "Parque Industrial",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
-        "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 1014,
-        "puntos": [
-            [
-                -32.1896865036081,
-                -64.1323113429035
-            ],
-            [
-                -32.1892777084358,
-                -64.1323577348035
-            ],
-            [
-                -32.1901920240332,
-                -64.142591260288
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 12,
-        "nombre": "P. A. de Sarmiento",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
-        "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 1572,
-        "puntos": [
-            [
-                -32.1789211669288,
-                -64.1459246141001
-            ],
-            [
-                -32.1789211669288,
-                -64.1424254672323
-            ],
-            [
-                -32.1900929474267,
-                -64.1426607715365
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 13,
-        "nombre": "Av. Savio",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
+        "id": "4a",
+        "nombre": "Interfábrica",
         "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 1119,
+        "tramo": "Interfábrica",
+        "material": "Tierra",
+        "dimension": "3,00 a 3,50 m",
+        "largo": 50,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1697556633624,
-                -64.1652815058089
+                -32.170343, -64.144135
             ],
             [
-                -32.1697917178743,
-                -64.1533901975268
+                -32.1696769,
+                -64.1441463
             ]
         ],
-        "galeria": ["img/d3.png"]
+        "galeria": [
+            "img/barrios/canal-interfabrica/dji-20260827092410-0771-d.webp",
+            "img/barrios/canal-interfabrica/dji-20260827092539-0773-d.webp",
+            "img/barrios/canal-interfabrica/dji-20260827093547-0776-d.webp"
+        ]
     },
     {
-        "id": 14,
-        "nombre": "Marcos Juarez",
-        "descripcion": "Tipo: A cielo abierto. Área 3.00 m².",
+        "id": "4b",
+        "nombre": "Interfábrica",
         "tipo": "superficial",
-        "material": "Área 3.00 m²",
-        "largo": 1574,
+        "tramo": "Desde Cura Brochero y E. del Campo hacia el norte",
+        "material": "Tierra",
+        "dimension": "3,00 a 3,50 m",
+        "largo": 800,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
+
             [
-                -32.1697842698904,
-                -64.1534072511406
+                -32.1696769,
+                -64.1441463
             ],
             [
-                -32.1556287455565,
-                -64.1531536562053
+                -32.1696937,
+                -64.1422945
+            ],
+            [
+                -32.15282, -64.14241
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/canal-interfabrica/dji-20260827092410-0771-d.webp",
+            "img/barrios/canal-interfabrica/dji-20260827092539-0773-d.webp",
+            "img/barrios/canal-interfabrica/dji-20260827093547-0776-d.webp"
+        ]
     },
     {
-        "id": 15,
-        "nombre": "Canal Oeste",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
+        "id": "5",
+        "nombre": "Tránsito Pesado",
         "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 1786,
+        "tramo": "Desde Tierra del Fuego y Cura Brochero por Paula Albarracín hasta parque industrial. Desde Parque industrial hasta Canal Sur",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 3900,
+        "sentido": "Norte a sur y Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1697554264535,
-                -64.1653072239569
+                -32.1789212,
+                -64.1459246
             ],
             [
-                -32.1536975148084,
-                -64.1651495702752
+                -32.1789212,
+                -64.1424255
+            ],
+            [
+                -32.1900929,
+                -64.1426608
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/canal-sur/dji-20260827095156-0785-d.webp",
+            "img/barrios/canal-sur/dji-20260827095503-0788-d.webp",
+            "img/barrios/canal-sur/dji-20260827095632-0791-d.webp"
+        ]
     },
     {
-        "id": 16,
-        "nombre": "Canal Oeste",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
-        "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 2562,
-        "puntos": [
-            [
-                -32.169768825082,
-                -64.1654360004028
-            ],
-            [
-                -32.1928109509722,
-                -64.1656609921366
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 17,
-        "nombre": "Ingresos Inter Fabricas",
-        "descripcion": "Tipo: A cielo abierto. Área 3.20 m².",
-        "tipo": "superficial",
-        "material": "Área 3.20 m²",
-        "largo": 1997,
-        "puntos": [
-            [
-                -32.1706248603547,
-                -64.1441581146554
-            ],
-            [
-                -32.1696769419683,
-                -64.1441462637017
-            ],
-            [
-                -32.1696936763002,
-                -64.1422945440474
-            ],
-            [
-                -32.1542546006011,
-                -64.1421233575094
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 18,
-        "nombre": "Catamarca",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
+        "id": "6",
+        "nombre": "Catamarca Sur",
         "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 879,
+        "tramo": "Desde Juan Pablo II hasta Rafael Obligado",
+        "material": "Metálico",
+        "dimension": "Diám. 0,80 m",
+        "largo": 850,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1815624581307,
-                -64.1296833269598
+                -32.1815625,
+                -64.1296833
             ],
             [
-                -32.1857482008276,
-                -64.129700722729
+                -32.1857482,
+                -64.1297007
             ],
             [
-                -32.1894677319463,
-                -64.1296609130062
+                -32.1894677,
+                -64.1296609
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/catamarca-6/big04822.webp",
+            "img/barrios/catamarca-6/big04824.webp",
+            "img/barrios/catamarca-6/big04825.webp",
+            "img/barrios/catamarca-6/big04827.webp",
+            "img/barrios/catamarca-6/big04829.webp",
+            "img/barrios/catamarca-6/big04844.webp",
+            "img/barrios/catamarca-6/big04846.webp"
+        ]
     },
     {
-        "id": 19,
-        "nombre": "Arenales",
-        "descripcion": "Tipo: A cielo abierto. Área 3.00 m².",
-        "tipo": "superficial",
-        "material": "Área 3.00 m²",
-        "largo": 597,
-        "puntos": [
-            [
-                -32.1622140944174,
-                -64.1298302888198
-            ],
-            [
-                -32.1621684985785,
-                -64.1234856609415
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 20,
-        "nombre": "Jose Ingenieros",
-        "descripcion": "Tipo: A cielo abierto. Área 3.00 m².",
-        "tipo": "superficial",
-        "material": "Área 3.00 m²",
-        "largo": 1453,
-        "puntos": [
-            [
-                -32.1621539150958,
-                -64.1234854819673
-            ],
-            [
-                -32.1621186742443,
-                -64.1233478805103
-            ],
-            [
-                -32.1619661565341,
-                -64.123277424622
-            ],
-            [
-                -32.1617034254942,
-                -64.123299919992
-            ],
-            [
-                -32.161366178621,
-                -64.1235015337192
-            ],
-            [
-                -32.1608530921358,
-                -64.1237952900636
-            ],
-            [
-                -32.1599964553615,
-                -64.1241791265449
-            ],
-            [
-                -32.1591187802697,
-                -64.1244683971035
-            ],
-            [
-                -32.1578623148714,
-                -64.1247101458893
-            ],
-            [
-                -32.1565494961805,
-                -64.1247283102661
-            ],
-            [
-                -32.1549750886114,
-                -64.124640392996
-            ],
-            [
-                -32.1540405259851,
-                -64.1247660721907
-            ],
-            [
-                -32.1529579944592,
-                -64.1251299531679
-            ],
-            [
-                -32.1519890799857,
-                -64.1258381065665
-            ],
-            [
-                -32.1509879421106,
-                -64.1268887294073
-            ],
-            [
-                -32.1502482252751,
-                -64.1277505440572
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 21,
-        "nombre": "Cerino",
-        "descripcion": "Tipo: A cielo abierto. Área 2.50 m².",
-        "tipo": "superficial",
-        "material": "Área 2.50 m²",
-        "largo": 416,
-        "puntos": [
-            [
-                -32.1583421438651,
-                -64.1182950808808
-            ],
-            [
-                -32.1573076088587,
-                -64.1140475717077
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 22,
-        "nombre": "Peron",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 1.50 m².",
+        "id": "7a",
+        "nombre": "Catamarca Norte",
         "tipo": "subterraneo",
-        "material": "Sección Circular · Área 1.50 m²",
-        "largo": 823,
+        "tramo": "Desde Caseros hasta Arenales",
+        "material": "Hormigón",
+        "dimension": "Rectangular 2,50 m ancho",
+        "largo": 1500,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1603720238247,
-                -64.1113843924099
+                -32.1764937,
+                -64.1297038
             ],
             [
-                -32.1609388077543,
-                -64.112445747531
+                -32.1764937,
+                -64.1297038
             ],
             [
-                -32.1629020609512,
-                -64.1155816565131
-            ],
-            [
-                -32.1648048947078,
-                -64.1183818890346
+                -32.1627971,
+                -64.1297256
             ]
         ],
-        "galeria": ["img/d1.png"]
+        "galeria": [
+            "img/barrios/catamarca-7a/big04798.webp",
+            "img/barrios/catamarca-7a/big04806.webp",
+            "img/barrios/catamarca-7a/big04848.webp"
+        ]
     },
     {
-        "id": 23,
-        "nombre": "Esperanza",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.70 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.70 m²",
-        "largo": 532,
+        "id": "7b",
+        "nombre": "Catamarca Norte",
+        "tipo": "superficial",
+        "tramo": "Desde Arenales hasta Río",
+        "material": "Tierra",
+        "dimension": "4,00 m",
+        "largo": 1200,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1719252968297,
-                -64.1184879401755
+                -32.1627862,
+                -64.1297365
             ],
             [
-                -32.1719984441738,
-                -64.1184871331686
+                -32.1624042,
+                -64.1301513
             ],
             [
-                -32.1729440596205,
-                -64.1184953478086
-            ],
-            [
-                -32.1736693519286,
-                -64.1184780281098
-            ],
-            [
-                -32.1751902600055,
-                -64.1184409277805
-            ],
-            [
-                -32.1767071689435,
-                -64.1184337470469
+                -32.153139, -64.130872
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/catamarca-7b-norte/big04852.webp",
+            "img/barrios/catamarca-7b-norte/big04864.webp",
+            "img/barrios/catamarca-7b-norte/big04859.webp"
+        ]
     },
     {
-        "id": 24,
+        "id": "8",
+        "nombre": "Fábrica Sector Este",
+        "tipo": "superficial",
+        "tramo": "Desde Catamarca hasta José Ing. - tramo 2 hasta Fin Barrio Cerino - paralelo a José Ing.",
+        "material": "Tierra",
+        "dimension": "4,00 m",
+        "largo": 1900,
+        "sentido": "Oeste a Este y Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.162271,
+                -64.12959
+            ],
+            [
+                -32.1621539,
+                -64.1234855
+            ],
+            [
+                -32.1621187,
+                -64.1233479
+            ],
+            [
+                -32.1619662,
+                -64.1232774
+            ],
+            [
+                -32.1617034,
+                -64.1232999
+            ],
+            [
+                -32.1613662,
+                -64.1235015
+            ],
+            [
+                -32.1608531,
+                -64.1237953
+            ],
+            [
+                -32.1599965,
+                -64.1241791
+            ],
+            [
+                -32.1591188,
+                -64.1244684
+            ],
+            [
+                -32.1578623,
+                -64.1247101
+            ],
+            [
+                -32.1565495,
+                -64.1247283
+            ],
+            [
+                -32.1549751,
+                -64.1246404
+            ],
+            [
+                -32.1540405,
+                -64.1247661
+            ],
+            [
+                -32.152958,
+                -64.12513
+            ],
+            [
+                -32.1519891,
+                -64.1258381
+            ],
+            [
+                -32.1509879,
+                -64.1268887
+            ],
+            [
+                -32.1502482,
+                -64.1277505
+            ]
+        ],
+        "galeria": [
+            "img/barrios/arenales/big04865.webp",
+            "img/barrios/arenales/dji-20260827102338-0792-d.webp",
+            "img/barrios/arenales/dji-20260827102413-0794-d.webp",
+            "img/barrios/arenales/dji-20260827102426-0795-d.webp",
+            "img/barrios/arenales/dji-20260827102545-0798-d.webp"
+        ]
+    },
+    {
+        "id": "9",
         "nombre": "Chacabuco",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
         "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 408,
+        "tramo": "Desde Guillermo Marconi hasta Esperanza",
+        "material": "Metálico",
+        "dimension": "Diám. 0,80 m",
+        "largo": 400,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1657771628927,
-                -64.1227926391664
+                -32.1657772,
+                -64.1227926
             ],
             [
-                -32.1658317884796,
-                -64.1207442641214
+                -32.1658318,
+                -64.1207443
             ],
             [
-                -32.1659410089723,
-                -64.1199396997192
+                -32.165941,
+                -64.1199397
             ],
             [
-                -32.1659872349638,
-                -64.1187815635628
+                -32.1659872,
+                -64.1187816
             ],
             [
-                -32.1659001915093,
-                -64.1184834397314
+                -32.1659002,
+                -64.1184834
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/chacabuco/big04876.webp",
+            "img/barrios/chacabuco/big04877.webp"
+        ]
     },
     {
-        "id": 25,
-        "nombre": "Bolivar",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 640,
-        "puntos": [
-            [
-                -32.1740887810004,
-                -64.1174765335956
-            ],
-            [
-                -32.1732121013988,
-                -64.1165904641066
-            ],
-            [
-                -32.1696989091638,
-                -64.1130752172427
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 26,
-        "nombre": "San Pedro",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 1003,
-        "puntos": [
-            [
-                -32.1696970485085,
-                -64.113079481505
-            ],
-            [
-                -32.1650850012748,
-                -64.1084559404172
-            ],
-            [
-                -32.1632056480237,
-                -64.1065470831899
-            ],
-            [
-                -32.1627374743455,
-                -64.1067128868588
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 27,
-        "nombre": "Acuna",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 1.10 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 1.10 m²",
-        "largo": 662,
-        "puntos": [
-            [
-                -32.1760195815387,
-                -64.1048270176414
-            ],
-            [
-                -32.1721563493209,
-                -64.1101745350423
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 28,
-        "nombre": "Alberdi",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 0.50 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 0.50 m²",
-        "largo": 390,
-        "puntos": [
-            [
-                -32.1721526571346,
-                -64.1101828054777
-            ],
-            [
-                -32.174842366357,
-                -64.1128357231422
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 29,
-        "nombre": "Esperanza",
-        "descripcion": "Tipo: Subterráneo. Sección Circular · Área 1.10 m².",
-        "tipo": "subterraneo",
-        "material": "Sección Circular · Área 1.10 m²",
-        "largo": 789,
-        "puntos": [
-            [
-                -32.1719122686502,
-                -64.1184843639957
-            ],
-            [
-                -32.1658958393366,
-                -64.118474735386
-            ],
-            [
-                -32.1648223033987,
-                -64.1183818890346
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 30,
-        "nombre": "PTE. ARTURO ILLIA",
-        "descripcion": "Tipo: A cielo abierto. Sección Rectangular · Área 3.00 m².",
+        "id": "10",
+        "nombre": "Cerino a Balneario",
         "tipo": "superficial",
-        "material": "Sección Rectangular · Área 3.00 m²",
-        "largo": 2752,
+        "tramo": "Desde Jorge Newbery hasta Av. El Mirador",
+        "material": "Tierra",
+        "dimension": "3,50 m",
+        "largo": 400,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1711251512349,
-                -64.0995736159056
+                -32.1583421,
+                -64.1182951
             ],
             [
-                -32.1759238078561,
-                -64.0930398309924
-            ],
-            [
-                -32.1772670550251,
-                -64.0911936488467
-            ],
-            [
-                -32.1778975346757,
-                -64.0905471597593
-            ],
-            [
-                -32.1783290511526,
-                -64.0902117229717
-            ],
-            [
-                -32.1789652133062,
-                -64.0897723184845
-            ],
-            [
-                -32.1803341159261,
-                -64.0889119498338
-            ],
-            [
-                -32.1821518389589,
-                -64.0875767568651
-            ],
-            [
-                -32.185616034015,
-                -64.0851971425448
-            ],
-            [
-                -32.186242897071,
-                -64.0843837078739
-            ],
-            [
-                -32.1878032036275,
-                -64.0792096156362
+                -32.1573076,
+                -64.1140476
             ]
         ],
-        "galeria": ["img/d2.png"]
+        "galeria": [
+            "img/barrios/cerino/dji-20260827104746-0811-d.webp",
+            "img/barrios/cerino/dji-20260827104908-0812-d.webp"
+        ]
     },
     {
-        "id": 31,
-        "nombre": "PTE. ARTURO ILLIA",
-        "descripcion": "Tipo: A cielo abierto. Sección Rectangular · Área 2.50 m².",
-        "tipo": "superficial",
-        "material": "Sección Rectangular · Área 2.50 m²",
-        "largo": 2065,
+        "id": "11",
+        "nombre": "Perón",
+        "tipo": "subterraneo",
+        "tramo": "Desde Esperanza hasta Av. El Mirador",
+        "material": "Metálico",
+        "dimension": "Diám. 1,20 m",
+        "largo": 700,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1744610030399,
-                -64.09422645287
+                -32.1648049,
+                -64.1183819
             ],
             [
-                -32.1755257106457,
-                -64.0930627617809
+                -32.1629021,
+                -64.1155817
             ],
             [
-                -32.1769678454961,
-                -64.0910531749463
+                -32.1609388,
+                -64.1124457
             ],
             [
-                -32.1775807981736,
-                -64.0903795663943
+                -32.160372,
+                -64.1113844
+            ]
+        ],
+        "galeria": [
+            "img/barrios/pte-juan-d-peron/dji-20260827103748-0801-d.webp",
+            "img/barrios/pte-juan-d-peron/dji-20260827103820-0802-d.webp",
+            "img/barrios/pte-juan-d-peron/dji-20260827103936-0806-d.webp",
+            "img/barrios/pte-juan-d-peron/dji-20260827104623-0808-d.webp"
+        ]
+    },
+    {
+        "id": "12",
+        "nombre": "Esperanza Norte",
+        "tipo": "subterraneo",
+        "tramo": "Desde Caseros hasta Perón",
+        "material": "Hormigón",
+        "dimension": "Diám. 0,80 m",
+        "largo": 1360,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.176496,
+                -64.118443
             ],
             [
-                -32.1785684957822,
-                -64.0896526723725
+                -32.1648223,
+                -64.1183819
+            ]
+        ],
+        "galeria": [
+            "img/barrios/esperanza-norte/big04886.webp",
+            "img/barrios/esperanza-norte/dji-20260827110241-0817-d.webp",
+            "img/barrios/esperanza-norte/dji-20260827110429-0822-d.webp",
+            "img/barrios/esperanza-norte/dji-20260827110647-0824-d.webp",
+            "img/barrios/esperanza-norte/dji-20260827110727-0825-d.webp"
+        ]
+    },
+    {
+        "id": "13",
+        "nombre": "Esperanza Sur",
+        "tipo": "subterraneo",
+        "tramo": "Desde Rafael Obligado hasta Juan Pablo II",
+        "material": "Hormigón",
+        "dimension": "Diám. 0,60 m",
+        "largo": 600,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.183231,
+                -64.1184
             ],
             [
-                -32.1808515345552,
-                -64.0881113764721
-            ],
-            [
-                -32.1815074461444,
-                -64.0876412677094
-            ],
-            [
-                -32.1839345562162,
-                -64.0858816417879
-            ],
-            [
-                -32.1853851225165,
-                -64.0848897222777
-            ],
-            [
-                -32.1858839506234,
-                -64.0843521449873
-            ],
-            [
-                -32.1862498008737,
-                -64.0832715472098
-            ],
-            [
-                -32.1873465030461,
-                -64.0795833986385
+                -32.188325,
+                -64.118367
             ]
         ],
         "galeria": []
     },
     {
-        "id": 32,
+        "id": "14",
+        "nombre": "La Justina",
+        "tipo": "superficial",
+        "tramo": "Continuación Esperanza y Paula Albarracín",
+        "material": "Tierra",
+        "dimension": "3,50 m",
+        "largo": 800,
+        "sentido": "Norte a Sur y Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.1910424,
+                -64.1186652
+            ],
+            [
+                -32.1938099,
+                -64.1185518
+            ],
+            [
+                -32.1931868,
+                -64.1120621
+            ]
+        ],
+        "galeria": [
+            "img/barrios/paula-albarracin/dji-20260827095106-0782-d.webp"
+        ]
+    },
+    {
+        "id": "15",
+        "nombre": "Plaza del Gaucho",
+        "tipo": "superficial",
+        "tramo": "Desde Rivadavia hasta Velódromo",
+        "material": "Hormigón",
+        "dimension": "3,50 m",
+        "largo": 430,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.182173,
+                -64.108315
+            ],
+            [
+                -32.184741,
+                -64.104755
+            ]
+        ],
+        "galeria": [
+            "img/barrios/colon/big05026.webp"
+        ]
+    },
+    {
+        "id": "16",
+        "nombre": "Velódromo",
+        "tipo": "subterraneo",
+        "tramo": "Desde Colón hasta Avenida de los Inmigrantes",
+        "material": "Metálico",
+        "dimension": "3,50 m",
+        "largo": 220,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.184741,
+                -64.104755
+            ],
+            [
+                -32.186368,
+                -64.104565
+            ]
+        ],
+        "galeria": []
+    },
+    {
+        "id": "17",
+        "nombre": "Avenida de los Inmigrantes",
+        "tipo": "superficial",
+        "tramo": "Desde Juan Pablo II paralela a circunvalación",
+        "material": "Tierra",
+        "dimension": "3,50 m",
+        "largo": 4000,
+        "sentido": "Norte a Sur y Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.190314,
+                -64.142287
+            ],
+            [
+                -32.189873,
+                -64.137132
+            ],
+            [
+                -32.1902,
+                -64.137062
+            ],
+            [
+                -32.187431,
+                -64.107081
+            ],
+            [
+            -32.186795, -64.105136
+            ],
+            [
+                -32.186368, -64.104565
+            ],
+            [
+                -32.192434, -64.104173
+            ],
+            [
+                -32.192375, -64.101759
+            ],
+            [
+                -32.195471, -64.084507
+            ],
+            [
+            -32.195493, -64.082040
+            ],
+            [
+            -32.194490, -64.079368
+            ],
+            [
+            -32.192084, -64.076557
+            ]
+        ],
+        "galeria": [
+            "img/barrios/paso-de-los-inmigrantes/dji-20260803100752-0721-d.webp",
+            "img/barrios/paso-de-los-inmigrantes/dji-20260803110710-0741-d.webp",
+            "img/barrios/paso-de-los-inmigrantes/dji-20260803111045-0752-d.webp"
+        ]
+    },
+    {
+        "id": "18",
+        "nombre": "Bolívar",
+        "tipo": "subterraneo",
+        "tramo": "Desde 25 de Mayo hasta Av. El Mirador",
+        "material": "Metálico",
+        "dimension": "Diám. 0,60 m",
+        "largo": 1500,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.1740888,
+                -64.1174765
+            ],
+            [
+                -32.163475,
+                -64.106802
+            ],
+            [
+                -32.163157,
+                -64.106941
+            ]
+        ],
+        "galeria": [
+            "img/barrios/bolivar/big04890.webp",
+            "img/barrios/bolivar/big04893.webp",
+            "img/barrios/bolivar/big04895.webp",
+            "img/barrios/bolivar/big04900.webp",
+            "img/barrios/bolivar/big04903.webp",
+            "img/barrios/bolivar/big04907.webp",
+            "img/barrios/bolivar/big04910.webp",
+            "img/barrios/bolivar/big04913.webp",
+            "img/barrios/bolivar/big04923.webp",
+            "img/barrios/bolivar/big04927.webp",
+            "img/barrios/bolivar/big04934.webp",
+            "img/barrios/bolivar/big04940.webp",
+            "img/barrios/bolivar/big04946.webp"
+        ]
+    },
+    {
+        "id": "19",
+        "nombre": "Alberdi y Acuña",
+        "tipo": "subterraneo",
+        "tramo": "Desde Dean Funes hasta Independencia",
+        "material": "Hormigón",
+        "dimension": "Diám. 0,80 m",
+        "largo": 1000,
+        "sentido": "Norte a Sur - Este a Oeste",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.1748424,
+                -64.1128357
+            ],
+            [
+                -32.1721563,
+                -64.1101745
+            ],
+            [
+                -32.1760196,
+                -64.104827
+            ]
+        ],
+        "galeria": [
+            "img/barrios/acuna-int-magnasco/big04991.webp",
+            "img/barrios/acuna-int-magnasco/big04995.webp",
+            "img/barrios/acuna-int-magnasco/big04999.webp"
+        ]
+    },
+    {
+        "id": "20",
         "nombre": "Igualdad",
-        "descripcion": "Tipo: Subterráneo. Sección Rectangular · Área 3.00 m².",
         "tipo": "subterraneo",
-        "material": "Sección Rectangular · Área 3.00 m²",
-        "largo": 2351,
+        "tramo": "Desde Tristán Acuña hasta Ruta 6",
+        "material": "Hormigón",
+        "dimension": "3,50 m",
+        "largo": 2280,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1758865865815,
-                -64.1048167006955
+                -32.1758866,
+                -64.1048167
             ],
             [
-                -32.1756824972752,
-                -64.1046795250749
+                -32.1756825,
+                -64.1046795
             ],
             [
-                -32.1764895905519,
-                -64.1034929579777
+                -32.1764896,
+                -64.103493
             ],
             [
-                -32.178898721678,
-                -64.1001618901875
+                -32.1788987,
+                -64.1001619
             ],
             [
-                -32.1811275812959,
-                -64.0966359648514
+                -32.1811276,
+                -64.096636
             ],
             [
-                -32.1824392569983,
-                -64.0942580148455
+                -32.1824393,
+                -64.094258
             ],
             [
-                -32.1836949952428,
-                -64.0916028333397
+                -32.183695,
+                -64.0916028
             ],
             [
-                -32.1845869211574,
-                -64.0895328029079
+                -32.1845869,
+                -64.0895328
             ],
             [
-                -32.1864577891083,
-                -64.0842043531411
+                -32.1864578,
+                -64.0842044
             ],
             [
-                -32.186450699947,
-                -64.0837882069991
+                -32.1864507,
+                -64.0837882
             ],
             [
-                -32.1864507443919,
-                -64.0838012209326
+                -32.1864507,
+                -64.0838012
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/igualdad/big05009.webp",
+            "img/barrios/igualdad/big05010.webp",
+            "img/barrios/igualdad/big05015.webp",
+            "img/barrios/igualdad/big05017.webp",
+            "img/barrios/igualdad/big05020.webp"
+        ]
     },
     {
-        "id": 33,
-        "nombre": "Transito Pesado",
-        "descripcion": "Tipo: A cielo abierto.",
+        "id": "21",
+        "nombre": "Ruta 6",
         "tipo": "superficial",
-        "material": null,
-        "largo": 2683,
+        "tramo": "Desde cruce Igualdad por Ruta 6 ambos lados",
+        "material": "Tierra",
+        "dimension": "3,50 m",
+        "largo": 700,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1923008824243,
-                -64.104544400483
+                -32.184798,
+                -64.08315
             ],
             [
-                -32.1955382644572,
-                -64.0865350560096
-            ],
-            [
-                -32.1959793892556,
-                -64.0839368012965
-            ],
-            [
-                -32.1958406736371,
-                -64.0826685921155
-            ],
-            [
-                -32.1954659491815,
-                -64.081010590695
-            ],
-            [
-                -32.1949996614792,
-                -64.0795626138697
-            ],
-            [
-                -32.194350878289,
-                -64.078464317727
-            ],
-            [
-                -32.1934331665476,
-                -64.0773276869514
+                -32.177183,
+                -64.083188
             ]
         ],
         "galeria": []
     },
     {
-        "id": 35,
-        "nombre": "La Justina",
-        "descripcion": "Tipo: A cielo abierto. Área 3.50 m².",
+        "id": "22",
+        "nombre": "Aeronáutico",
         "tipo": "superficial",
-        "material": "Área 3.50 m²",
-        "largo": 923,
+        "tramo": "Desde Ruta 6 paralelo al barrio",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 1600,
+        "sentido": "Sur a Norte y Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1910423689363,
-                -64.1186652095898
+                -32.177183,
+                -64.083188
             ],
             [
-                -32.193809916197,
-                -64.11855175277
-            ],
-            [
-                -32.1931868112629,
-                -64.1120620875677
+                -32.178391,
+                -64.074937
             ]
         ],
         "galeria": []
     },
     {
-        "id": 36,
-        "nombre": "Querandies",
-        "descripcion": "Tipo: A cielo abierto. Área 2.00 m².",
+        "id": "23",
+        "nombre": "Av. Arturo Illia",
         "tipo": "superficial",
-        "material": "Área 2.00 m²",
-        "largo": 265,
+        "tramo": "Desde Bélice hasta cruce Igualdad - ambas manos",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 2400,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1638467994369,
-                -64.1025592079755
+                -32.170727,
+                -64.09941
             ],
             [
-                -32.1634199459088,
-                -64.1012437911156
+                -32.174704,
+                -64.094045
             ],
             [
-                -32.1638467994369,
-                -64.1025592079755
+                -32.17761,
+                -64.09043
+            ],
+            [
+                -32.18537,
+                -64.08493
+            ],
+            [
+                -32.188643,
+                -64.074991
             ]
         ],
         "galeria": []
     },
     {
-        "id": 37,
-        "nombre": "La Justina",
-        "descripcion": "Tipo: A cielo abierto.",
+        "id": "23",
+        "nombre": "Av. Arturo Illia",
         "tipo": "superficial",
-        "material": null,
-        "largo": 276,
+        "tramo": "Desde Bélice hasta cruce Igualdad - ambas manos",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 2400,
+        "sentido": "Norte a Sur",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1897467272594,
-                -64.1086533581342
+                -32.1711252,
+                -64.0995736
             ],
             [
-                -32.190797351961,
-                -64.1085500023884
+                -32.1759238,
+                -64.0930398
             ],
             [
-                -32.1922076698111,
-                -64.1088133333707
+                -32.1772671,
+                -64.0911936
+            ],
+            [
+                -32.1778975,
+                -64.0905472
+            ],
+            [
+                -32.1783291,
+                -64.0902117
+            ],
+            [
+                -32.1789652,
+                -64.0897723
+            ],
+            [
+                -32.1803341,
+                -64.0889119
+            ],
+            [
+                -32.1821518,
+                -64.0875768
+            ],
+            [
+                -32.185616,
+                -64.0851971
+            ],
+            [
+                -32.1862429,
+                -64.0843837
+            ],
+            [
+                -32.188988,
+                -64.074996
             ]
         ],
         "galeria": []
     },
     {
-        "id": 38,
-        "nombre": "La Justina",
-        "descripcion": "Tipo: A cielo abierto.",
-        "tipo": "superficial",
-        "material": null,
-        "largo": 35,
-        "puntos": [
-            [
-                -32.1908544199535,
-                -64.1063083717055
-            ],
-            [
-                -32.1911697869338,
-                -64.1062710228064
-            ]
-        ],
-        "galeria": []
-    },
-    {
-        "id": 222,
-        "nombre": "Colector sin nombre #222",
-        "descripcion": "Tipo: Subterráneo. Sección 2.",
+        "id": "24",
+        "nombre": "Tristán Acuña",
         "tipo": "subterraneo",
-        "material": "Sección 2",
-        "largo": 1523,
+        "tramo": "Desde Igualdad hasta Av. Del Mirador",
+        "material": "Hormigón",
+        "dimension": "Rectangular 1,50 m ancho",
+        "largo": 1500,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1627971180001,
-                -64.1297256261071
+                -32.174164,
+                -64.104809
             ],
             [
-                -32.1764937292668,
-                -64.1297037988381
-            ],
-            [
-                -32.1764937292668,
-                -64.1297037988381
+                -32.162662,
+                -64.104667
             ]
         ],
-        "galeria": []
+        "galeria": [
+            "img/barrios/tristan-acuna/big04974.webp",
+            "img/barrios/tristan-acuna/big04978.webp",
+            "img/barrios/tristan-acuna/big04990.webp"
+        ]
     },
     {
-        "id": 901,
-        "nombre": "Colector sin nombre #901",
-        "descripcion": "Tipo: A cielo abierto. Sección 3.",
+        "id": "25",
+        "nombre": "Querandíes",
         "tipo": "superficial",
-        "material": "Sección 3",
-        "largo": 1152,
+        "tramo": "Desde Viltipoco hasta Túpac Amaru",
+        "material": "Hormigón",
+        "dimension": "1,50 m",
+        "largo": 120,
+        "sentido": "Este a Oeste",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1627862043656,
-                -64.1297365397416
+                -32.163448,
+                -64.10125
             ],
             [
-                -32.1624042271589,
-                -64.1301512578517
-            ],
-            [
-                -32.152583343223,
-                -64.1308702244965
+                -32.163797,
+                -64.102467
             ]
         ],
         "galeria": []
     },
     {
-        "id": 902,
-        "nombre": "Colector sin nombre #902",
-        "descripcion": "Tipo: Subterráneo. Sección 2x3.",
+        "id": "26",
+        "nombre": "Túpac Amaru",
         "tipo": "subterraneo",
-        "material": "Sección 2x3",
-        "largo": 1541,
+        "tramo": "Desde Querandíes hasta Av. El Mirador",
+        "material": "Hormigón",
+        "dimension": "Diám. 0,80 m",
+        "largo": 300,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.1759758510667,
-                -64.104903589778
+                -32.163815,
+                -64.102542
             ],
             [
-                -32.1742193309184,
-                -64.1048024125933
+                -32.16308,
+                -64.102542
             ],
             [
-                -32.1688072042946,
-                -64.1048194318594
+                -32.162553,
+                -64.104291
+            ]
+        ],
+        "galeria": [
+            "img/barrios/tupac-amaru/big04959.webp",
+            "img/barrios/tupac-amaru/big04960.webp"
+        ]
+    },
+    {
+        "id": "27",
+        "nombre": "Barrio Acuña",
+        "tipo": "superficial",
+        "tramo": "Paralelo a Ferrocarril",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 850,
+        "sentido": "Mitad hacia el Sur y mitad hacia el Norte",
+        "bidireccional": true,
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.186368,
+                -64.104565
             ],
             [
-                -32.1652331584108,
-                -64.104751354795
+                -32.18443,
+                -64.102274
             ],
             [
-                -32.1650119079514,
-                -64.1047173162628
+                -32.182414,
+                -64.10133
             ],
             [
-                -32.1621186327122,
-                -64.1047002969967
+                -32.179908,
+                -64.10147
+            ],
+            [
+                -32.179481, -64.101555
+            ]
+            
+        ],
+        "galeria": []
+    },
+    {
+        "id": "28",
+        "nombre": "Igualdad 2",
+        "tipo": "superficial",
+        "tramo": "Paralelo a calle Igualdad desde Laguna de retención B° Acuña",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 2700,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.178988, -64.100263
+            ],
+            [
+                -32.179286,
+                -64.099839
+            ],
+            [
+                -32.181656,
+                -64.096245
+            ],
+            [
+                -32.185102,
+                -64.089389
+            ],
+            [
+                -32.1896,
+                -64.07536
+            ]
+            
+        ],
+        "galeria": []
+    },
+    {
+        "id": "29",
+        "nombre": "Obispo Colombres",
+        "tipo": "superficial",
+        "tramo": "Desde Parque Industrial hasta Esperanza",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 600,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.188645,
+                -64.123708
+            ],
+            [
+                -32.188148,
+                -64.118432
+            ]
+        ],
+        "galeria": []
+    },
+        {
+        "id": "30",
+        "nombre": "AV. EL MIRADOR",
+        "tipo": "superficial",
+        "tramo": "Desde Santa Rosa hasta Tupac Amaru",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 135,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.164615, -64.106002
+            ],
+            [
+                -32.165194, -64.104777
+            ]
+        ],
+        "galeria": [
+            "img/barrios/avda-del-mirador/big04952.webp"
+        ]
+    },
+    {
+        "id": "31",
+        "nombre": "Balbín",
+        "tipo": "superficial",
+        "tramo": "Desde Cervantes paralelo a Balvín hasta Rotonda Balneario",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 400,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
+        "puntos": [
+            [
+                -32.164020, -64.112185
+            ],
+            [
+                -32.163245, -64.111868
+            ],
+            [
+                -32.163039, -64.111850
+            ],
+            [
+                -32.161490, -64.112054
+            ],
+            [
+                -32.161495, -64.111866
+            ],
+            [
+            -32.160864, -64.111662
+            ],
+            [
+            -32.160714, -64.111120
             ]
         ],
         "galeria": []
     },
     {
-        "id": 903,
-        "nombre": "Colector sin nombre #903",
-        "descripcion": "Tipo: A cielo abierto. Sección 3.",
+        "id": "32",
+        "nombre": "Scout",
         "tipo": "superficial",
-        "material": "Sección 3",
-        "largo": 1698,
+        "tramo": "Desde Balbín y Cid Campeador (por predio Scout) hasta Río Ctalamochita",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 270,
+        "sentido": "Sur a Norte",
+        "aproximado": false,
         "puntos": [
             [
-                -32.185989095428,
-                -64.0831836921518
+                -32.163488, -64.111852
             ],
             [
-                -32.1770874514889,
-                -64.0831024515943
+                -32.162966, -64.111753
             ],
             [
-                -32.1781087613542,
-                -64.0756747434835
+                -32.162639, -64.111195
+            ],
+            [
+                -32.162471, -64.111410
+            ],
+            [
+                -32.161760, -64.111032
+            ],
+                        [
+                -32.161268, -64.111021
+            ],
+            [
+            -32.161143, -64.110702
             ]
         ],
         "galeria": []
     },
     {
-        "id": 904,
-        "nombre": "Colector sin nombre #904",
-        "descripcion": "Tipo: A cielo abierto.",
-        "tipo": "superficial",
-        "material": null,
-        "largo": 121,
+        "id": "33",
+        "nombre": "Alfredo Martina",
+        "tipo": "subterraneo",
+        "tramo": "Alfredo Martina, detrás velódromo",
+        "material": "Tierra",
+        "dimension": "3,00 m",
+        "largo": 100,
+        "sentido": "Oeste a Este",
+        "aproximado": false,
         "puntos": [
             [
-                -32.164715675167,
-                -64.1059252453441
+                -32.186396, -64.105536
             ],
             [
-                -32.1651973156148,
-                -64.1047762717457
+                -32.186405, -64.105015
+            ],
+            [
+                -32.186368, -64.104565
             ]
         ],
         "galeria": []
     }
 ];
 
+        // Lagunas de retención. Coordenadas de ejemplo a ajustar manualmente por laguna.
+        const lagunas = [
+            { id: 1, nombre: "Marín Maroto", punto: [-32.173615, -64.139216] },
+            { id: 2, nombre: "Velódromo", punto: [-32.185794, -64.105160] },
+            { id: 3, nombre: "Favaloro", punto: [-32.179717, -64.145361] },
+            { id: 4, nombre: "Acuña", punto: [-32.178686, -64.101411] }
+        ];
+        const colorLaguna = '#eab308';
+
         const colores = { subterraneo: '#ef4444', superficial: '#22c55e' };
         let activeFilter = 'all';
-        let layers = [], nodeMarkers = [], decorators = [];
+        let layers = [], nodeMarkers = [], decorators = [], lagunaMarkers = [];
         let showLines = true;
         let currentSelected = null, searchTimeout = null;
 
         const map = L.map('map', { zoomControl: true }).setView([-32.175, -64.115], 13);
 
         const baseLayers = {
-            street: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }),
-            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
-            topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
+            street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }),
+            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 18,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+            }),
+            topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, HERE, Garmin, USGS'
+            })
         };
         baseLayers.street.addTo(map);
 
@@ -1666,27 +1951,117 @@
             return latlngs[latlngs.length - 1];
         }
 
+        // Divide una polilínea en dos mitades por longitud real (no por cantidad de puntos),
+        // insertando el punto medio interpolado como extremo compartido de ambas mitades.
+        function splitPointsAtMidpoint(puntos) {
+            const latlngs = puntos.map(p => [p[0], p[1]]);
+            const mid = getMidpoint(puntos);
+            const midPoint = [mid.lat, mid.lng];
+
+            let total = 0;
+            const segs = [];
+            for (let i = 0; i < latlngs.length - 1; i++) {
+                segs.push(L.latLng(latlngs[i]).distanceTo(L.latLng(latlngs[i + 1])));
+                total += segs[i];
+            }
+
+            let acc = 0;
+            let splitIdx = latlngs.length - 1;
+            for (let i = 0; i < segs.length; i++) {
+                if (acc + segs[i] >= total / 2) { splitIdx = i; break; }
+                acc += segs[i];
+            }
+
+            const firstHalf = latlngs.slice(0, splitIdx + 1).concat([midPoint]);
+            const secondHalf = [midPoint].concat(latlngs.slice(splitIdx + 1));
+            return [firstHalf, secondHalf];
+        }
+
+        function renderLagunas() {
+            lagunaMarkers.forEach(m => map.removeLayer(m));
+            lagunaMarkers = [];
+
+            if (activeFilter !== 'lagunas' && activeFilter !== 'all') return;
+
+            lagunas.forEach(laguna => {
+                const marker = L.circleMarker(laguna.punto, {
+                    radius: 10,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: colorLaguna,
+                    fillOpacity: 1,
+                    className: 'drain-midpoint'
+                }).addTo(map);
+                marker.bindTooltip(`<b>${laguna.nombre}</b>`, { sticky: true });
+                lagunaMarkers.push(marker);
+            });
+        }
+
         function renderDesagues() {
             layers.forEach(l => map.removeLayer(l));
             nodeMarkers.forEach(m => map.removeLayer(m));
             decorators.forEach(d => map.removeLayer(d));
             layers = []; nodeMarkers = []; decorators = [];
 
+            renderLagunas();
+
             const filtered = desagues.filter(d => activeFilter === 'all' || d.tipo === activeFilter);
 
             filtered.forEach(desague => {
                 if (showLines) {
                     const clickHandler = () => selectDesague(desague);
-                    const tooltipHtml = `<b>${desague.nombre}</b><br>${desague.largo} m`;
+                    const tooltipHtml = `<b>N.º ${desague.id} — ${desague.nombre}</b><br>${desague.largo} m` +
+                        (desague.aproximado ? '<br><i style="color:#a16207;">Ubicación aproximada</i>' : '');
 
-                    const line = L.polyline(desague.puntos, { color: colores[desague.tipo], weight: 6, opacity: 0.6, interactive: false }).addTo(map);
-                    const flowLine = L.polyline(desague.puntos, { color: '#ffffff', weight: 3, className: 'flow-line', interactive: false }).addTo(map);
+                    const line = L.polyline(desague.puntos, {
+                        color: colores[desague.tipo],
+                        weight: 6,
+                        opacity: desague.aproximado ? 0.35 : 0.6,
+                        dashArray: desague.aproximado ? '4, 8' : null,
+                        interactive: false
+                    }).addTo(map);
+                    const flowOptions = { color: '#ffffff', weight: 3, className: 'flow-line', interactive: false };
+                    // Bidireccional: la animación corre desde el punto medio hacia ambos extremos
+                    const flowPaths = desague.bidireccional
+                        ? (([firstHalf, secondHalf]) => [firstHalf.slice().reverse(), secondHalf])(splitPointsAtMidpoint(desague.puntos))
+                        : [desague.puntos];
+                    const flowLines = flowPaths.map(path => L.polyline(path, flowOptions).addTo(map));
 
                     if (typeof L.polylineDecorator === 'function') {
-                        const decorator = L.polylineDecorator(line, {
-                            patterns: [{ offset: '10%', repeat: 80, symbol: L.Symbol.arrowHead({ pixelSize: 8, headAngle: 45, polygon: false, pathOptions: { stroke: true, color: colores[desague.tipo], weight: 2, interactive: false } }) }]
-                        }).addTo(map);
-                        decorators.push(decorator);
+                        const arrowPattern = () => ({
+                            offset: '10%',
+                            repeat: 110,
+                            symbol: L.Symbol.arrowHead({
+                                pixelSize: 16,
+                                headAngle: 40,
+                                polygon: true,
+                                pathOptions: {
+                                    stroke: true,
+                                    color: '#ffffff',
+                                    weight: 1.5,
+                                    fillColor: colores[desague.tipo],
+                                    fillOpacity: 1,
+                                    interactive: false
+                                }
+                            })
+                        });
+
+                        if (desague.bidireccional) {
+                            // Escurrimiento en ambos sentidos desde el punto medio: mitad hacia
+                            // el extremo inicial, mitad hacia el extremo final.
+                            const [firstHalf, secondHalf] = splitPointsAtMidpoint(desague.puntos);
+
+                            const decoratorToStart = L.polylineDecorator(L.polyline(firstHalf.slice().reverse()), {
+                                patterns: [arrowPattern()]
+                            }).addTo(map);
+                            const decoratorToEnd = L.polylineDecorator(L.polyline(secondHalf), {
+                                patterns: [arrowPattern()]
+                            }).addTo(map);
+                            decorators.push(decoratorToStart, decoratorToEnd);
+                        } else {
+                            const decorator = L.polylineDecorator(line, { patterns: [arrowPattern()] }).addTo(map);
+                            decorators.push(decorator);
+                        }
                     }
 
                     // Línea invisible más ancha para facilitar el click sin engrosar el trazo visual
@@ -1707,18 +2082,13 @@
                     midMarker.bindTooltip(tooltipHtml, { sticky: true });
 
                     line._drainData = desague;
-                    flowLine._drainData = desague;
+                    flowLines.forEach(f => { f._drainData = desague; });
 
-                    layers.push(line, flowLine, hitLine, midMarker);
+                    layers.push(line, ...flowLines, hitLine, midMarker);
                 }
             });
 
             updateStats(filtered);
-        }
-
-        function calculateSlope(desague) {
-            if (desague.zInicio == null || desague.zFin == null) return "N/D";
-            return (desague.zInicio - desague.zFin).toFixed(1) + " m";
         }
 
         function selectDesague(desague) {
@@ -1729,11 +2099,14 @@
             iconSide.style.background = colores[desague.tipo] + '22';
             iconSide.style.color = colores[desague.tipo];
 
-            document.getElementById('sidebar-name').textContent = desague.nombre;
-            document.getElementById('sidebar-desc').textContent = desague.descripcion || "Sin descripción disponible.";
+            document.getElementById('sidebar-name').textContent = `N.º ${desague.id} — ${desague.nombre}`;
+            document.getElementById('sidebar-desc').textContent = desague.tipo === 'subterraneo' ? 'Subterráneo' : 'A cielo abierto';
+            document.getElementById('sidebar-approx-note').style.display = desague.aproximado ? 'flex' : 'none';
+            document.getElementById('sidebar-tramo').textContent = desague.tramo || 'N/D';
             document.getElementById('sidebar-largo').textContent = desague.largo + ' m';
             document.getElementById('sidebar-material').textContent = desague.material || 'N/D';
-            document.getElementById('sidebar-pendiente').textContent = calculateSlope(desague);
+            document.getElementById('sidebar-dimension').textContent = desague.dimension || 'N/D';
+            document.getElementById('sidebar-sentido').textContent = desague.sentido || 'N/D';
 
             // Cargar Galería
             const galleryContainer = document.getElementById('sidebar-gallery');
@@ -1795,12 +2168,14 @@
 
             let html = '';
 
-            const localMatches = desagues.filter(d => d.nombre.toLowerCase().includes(query.toLowerCase()));
-            localMatches.forEach(d => {
+            const localMatches = desagues
+                .map((d, idx) => ({ d, idx }))
+                .filter(({ d }) => d.nombre.toLowerCase().includes(query.toLowerCase()) || d.tramo.toLowerCase().includes(query.toLowerCase()));
+            localMatches.forEach(({ d, idx }) => {
                 html += `
-                    <div class="map-search-result-item" onclick="selectDesague(desagues.find(x=>x.id===${d.id})); document.getElementById('map-search-results').classList.remove('visible');">
-                        <span><i class="fa-solid fa-water" style="color:${colores[d.tipo]}"></i> ${d.nombre}</span>
-                        <small style="color:var(--text-muted)">Colector</small>
+                    <div class="map-search-result-item" onclick="selectDesague(desagues[${idx}]); document.getElementById('map-search-results').classList.remove('visible');">
+                        <span><i class="fa-solid fa-water" style="color:${colores[d.tipo]}"></i> N.º ${d.id} — ${d.nombre}</span>
+                        <small style="color:var(--text-muted)">Desague</small>
                     </div>`;
             });
 
@@ -1823,9 +2198,10 @@
         }
 
         function updateStats(filtered) {
-            document.getElementById('total-desagues').textContent = filtered.length;
+            document.getElementById('total-desagues').textContent = new Set(filtered.map(d => d.id.replace(/[ab]$/, ''))).size;
             document.getElementById('total-subterraneos').textContent = filtered.filter(d => d.tipo === 'subterraneo').length;
             document.getElementById('total-kilometros').textContent = (filtered.reduce((a, b) => a + b.largo, 0) / 1000).toFixed(1);
+            document.getElementById('total-lagunas').textContent = lagunas.length;
         }
 
         async function exportPDF() {
@@ -1841,14 +2217,16 @@
                 pdfContainer.style.color = '#111827';
                 pdfContainer.innerHTML = `
                     <h2 style="color:#1e40af; border-bottom:2px solid #2563eb; padding-bottom:8px;">MUNICIPALIDAD DE RÍO TERCERO</h2>
-                    <h3 style="margin-top:12px;">Ficha Técnica: ${currentSelected.nombre}</h3>
-                    <p style="color:#374151; font-size:13px;">${currentSelected.descripcion || ''}</p>
+                    <h3 style="margin-top:12px;">Ficha Técnica: N.º ${currentSelected.id} — ${currentSelected.nombre}</h3>
+                    <p style="color:#374151; font-size:13px;">${currentSelected.tramo || ''}</p>
+                    ${currentSelected.aproximado ? `<p style="color:#a16207; font-size:11px; font-weight:600;">⚠ Ubicación aproximada (pendiente relevamiento GPS de precisión)</p>` : ''}
                     ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:15px 0; border:1px solid #e5e7eb; display:block;" />` : ''}
                     <table style="width:100%; border-collapse:collapse; font-size:13px;">
                         <tr><td style="${cellStyle} color:#6b7280;">Tipo</td><td style="${cellStyle} text-align:right;"><b>${tipoLabel}</b></td></tr>
                         <tr><td style="${cellStyle} color:#6b7280;">Longitud</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.largo} m</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Sección / Material</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.material || 'N/D'}</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Pendiente del Terreno</td><td style="${cellStyle} text-align:right;"><b>${calculateSlope(currentSelected)}</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Material</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.material || 'N/D'}</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Dimensión / Sección</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.dimension || 'N/D'}</b></td></tr>
+                        <tr><td style="${cellStyle} color:#6b7280;">Sentido de escurrimiento</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.sentido || 'N/D'}</b></td></tr>
                     </table>
                 `;
 
@@ -1873,14 +2251,17 @@
                 const coords = d.puntos.map(p => `${p[1]},${p[0]},0`).join(' ');
                 const tipoLabel = d.tipo === 'subterraneo' ? 'subterraneo' : 'a cielo abierto';
                 return `  <Placemark>
-    <name>${escapeXml(d.nombre)}</name>
-    <description>${escapeXml(d.descripcion || '')}</description>
+    <name>N.º ${escapeXml(d.id)} - ${escapeXml(d.nombre)}</name>
+    <description>${escapeXml(d.tramo || '')}</description>
     <Style><LineStyle><color>${hexToKmlColor(colores[d.tipo])}</color><width>3</width></LineStyle></Style>
     <ExtendedData>
-      <Data name="id"><value>${d.id}</value></Data>
+      <Data name="Numero"><value>${escapeXml(d.id)}</value></Data>
       <Data name="Tipo"><value>${escapeXml(tipoLabel)}</value></Data>
+      <Data name="Tramo"><value>${escapeXml(d.tramo || '')}</value></Data>
       <Data name="Material"><value>${escapeXml(d.material || '')}</value></Data>
+      <Data name="Dimension"><value>${escapeXml(d.dimension || '')}</value></Data>
       <Data name="LongitudMetros"><value>${d.largo}</value></Data>
+      <Data name="SentidoEscurrimiento"><value>${escapeXml(d.sentido || '')}</value></Data>
     </ExtendedData>
     <LineString>
       <tessellate>1</tessellate>
@@ -1889,7 +2270,7 @@
   </Placemark>`;
             }).join('\n');
 
-            const kml = `<?xml version="1.0" encoding="UTF-8"?>
+            const kml = '<' + '?xml version="1.0" encoding="UTF-8"?' + '>' + `
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
   <name>Red de Desagües - Río Tercero</name>
