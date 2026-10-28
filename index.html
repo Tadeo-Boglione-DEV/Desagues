@@ -7,8 +7,26 @@
     <meta name="description" content="Mapa interactivo de la red de desagües pluviales de Río Tercero: recorrido, dimensiones, sentido de escurrimiento y fotos de cada tramo.">
     <meta name="theme-color" content="#0b2a6f">
     <link rel="icon" type="image/png" href="img/favicon.png">
-    <link rel="preload" as="image" href="img/hero.webp" media="(min-width: 700px)">
-    <link rel="preload" as="image" href="img/hero-sm.webp" media="(max-width: 699px)">
+    <link rel="canonical" href="https://riotercero.gob.ar/desagues/">
+
+    <!-- Vista previa al compartir (WhatsApp, Facebook, X, etc.) -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="es_AR">
+    <meta property="og:site_name" content="Municipalidad de Río Tercero">
+    <meta property="og:title" content="Red de Desagües Pluviales - Río Tercero">
+    <meta property="og:description" content="Mapa interactivo de la red de desagües pluviales de Río Tercero: recorrido, dimensiones, sentido de escurrimiento y fotos de cada tramo.">
+    <meta property="og:url" content="https://riotercero.gob.ar/desagues/">
+    <meta property="og:image" content="https://riotercero.gob.ar/desagues/img/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Canal de desagüe pluvial en Río Tercero">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Red de Desagües Pluviales - Río Tercero">
+    <meta name="twitter:description" content="Mapa interactivo de la red de desagües pluviales de Río Tercero.">
+    <meta name="twitter:image" content="https://riotercero.gob.ar/desagues/img/og.jpg">
+
+    <link rel="preload" as="image" href="img/hero-1.webp" media="(min-width: 700px)" fetchpriority="high">
+    <link rel="preload" as="image" href="img/hero-1-sm.webp" media="(max-width: 699px)" fetchpriority="high">
 
     <!-- Leaflet, FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -32,7 +50,8 @@
             --bg-tertiary: #eaf0f8;
             --text-primary: #0f172a;
             --text-secondary: #334155;
-            --text-muted: #64748b;
+            --text-muted: #566277;
+            --focus: #1d4ed8;
             --border: #e2e8f0;
             --brand: #1d4ed8;
             --brand-strong: #1e3a8a;
@@ -51,6 +70,7 @@
             --text-primary: #f1f5f9;
             --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
+            --focus: #67e8f9;
             --border: #1e2a44;
             --brand: #3b82f6;
             --shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
@@ -73,7 +93,17 @@
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; }
         path:focus, svg:focus, .leaflet-interactive:focus { outline: none !important; }
-        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .header:not(.scrolled) :focus-visible, .hero :focus-visible, .footer :focus-visible, .lightbox-modal :focus-visible { outline-color: #67e8f9; }
+
+        .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .skip-link {
+            position: fixed; top: -60px; left: 16px; z-index: 5000;
+            background: #fff; color: #0b2a6f; font-weight: 700; font-size: 14px;
+            padding: 11px 18px; border-radius: 999px; box-shadow: var(--shadow);
+            transition: top 0.2s;
+        }
+        .skip-link:focus { top: 14px; }
 
         .drain-midpoint { cursor: pointer; transition: filter 0.15s, transform 0.15s; transform-origin: center; transform-box: fill-box; }
         .drain-midpoint:hover { filter: brightness(1.2); transform: scale(1.3); }
@@ -180,22 +210,30 @@
             background: #0b2a6f;
         }
 
-        .hero-bg {
-            position: absolute;
-            inset: -4%;
-            z-index: -3;
-            background: url('img/hero.webp') center 45% / cover no-repeat;
-            animation: kenBurns 28s ease-in-out infinite alternate;
+        /* Carrusel de fotos del hero */
+        .hero-slides { position: absolute; inset: 0; z-index: -3; overflow: hidden; background: #0b2a6f; }
+        .hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease; }
+        .hero-slide.active { opacity: 1; z-index: 1; }
+        .hero-slide.leaving { opacity: 0; z-index: 0; }
+        .hero-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: var(--pos, center);
+            display: block;
+            transform: scale(1.02);
             will-change: transform;
         }
+        .hero-slide.active img, .hero-slide.leaving img { animation: kenBurns 11s ease-out forwards; }
+        .hero.paused .hero-slide.active img { animation-play-state: paused; }
 
         .hero-overlay {
             position: absolute;
             inset: 0;
             z-index: -2;
             background:
-                radial-gradient(ellipse at 15% 60%, rgba(6, 18, 56, 0.9) 0%, rgba(6, 18, 56, 0) 60%),
-                linear-gradient(100deg, rgba(8, 24, 72, 0.92) 0%, rgba(14, 50, 130, 0.66) 55%, rgba(14, 50, 130, 0.4) 100%),
+                radial-gradient(ellipse at 15% 60%, rgba(6, 18, 56, 0.72) 0%, rgba(6, 18, 56, 0) 62%),
+                linear-gradient(100deg, rgba(8, 24, 72, 0.78) 0%, rgba(14, 50, 130, 0.45) 55%, rgba(10, 36, 100, 0.3) 100%),
                 linear-gradient(to bottom, rgba(6, 18, 56, 0.55) 0%, rgba(6, 18, 56, 0) 28%);
         }
 
@@ -319,7 +357,7 @@
             animation: wordIn 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
             animation-delay: calc(0.5s + var(--i) * 0.14s);
         }
-        .hero-bg { opacity: 0; animation: kenBurns 28s ease-in-out infinite alternate, fadeIn 1.6s ease forwards; }
+        .hero-slides { opacity: 0; animation: fadeIn 1.2s ease forwards; }
 
         /* ========== SECCIÓN DEL MAPA ========== */
         .section { padding: 10px 24px 70px; max-width: 1450px; margin: 0 auto; scroll-margin-top: 70px; }
@@ -806,6 +844,84 @@
             color: rgba(255, 255, 255, 0.65);
         }
 
+        /* ===== Controles del carrusel del hero ===== */
+        .hero-controls { position: absolute; left: 0; right: 0; bottom: 26px; z-index: 2; pointer-events: none; }
+        .hero-controls-inner {
+            max-width: 1450px; margin: 0 auto; padding: 0 32px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .hero-dots { display: flex; gap: 8px; pointer-events: auto; }
+        .hero-dot {
+            position: relative; width: 46px; height: 24px; border: none; background: none; cursor: pointer; padding: 0;
+        }
+        .hero-dot::before {
+            content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 4px; margin-top: -2px;
+            border-radius: 4px; background: rgba(255, 255, 255, 0.35); transition: background 0.2s;
+        }
+        .hero-dot:hover::before { background: rgba(255, 255, 255, 0.6); }
+        .hero-dot::after {
+            content: ''; position: absolute; left: 0; top: 50%; height: 4px; margin-top: -2px; width: 0;
+            border-radius: 4px; background: #fff;
+        }
+        .hero-dot.active::after { animation: dotFill var(--dur, 6.5s) linear forwards; }
+        .hero.paused .hero-dot.active::after { animation-play-state: paused; }
+        @keyframes dotFill { from { width: 0; } to { width: 100%; } }
+        .hero-pause {
+            pointer-events: auto; width: 34px; height: 34px; border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(10, 20, 45, 0.35);
+            color: #fff; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .hero-pause:hover { background: rgba(255, 255, 255, 0.25); }
+
+        /* ===== Mapa: carga, avisos y herramientas ===== */
+        .map-loader {
+            position: absolute; inset: 0; z-index: 900;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+            background: linear-gradient(110deg, var(--bg-tertiary) 30%, var(--bg-secondary) 50%, var(--bg-tertiary) 70%);
+            background-size: 200% 100%; animation: shimmer 1.6s linear infinite;
+            color: var(--text-muted); font-size: 13px; font-weight: 600;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        .map-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .map-loader .spinner {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 3px solid var(--border); border-top-color: var(--brand);
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+        .map-toast {
+            position: absolute; left: 50%; bottom: 74px; z-index: 950;
+            transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+            max-width: calc(100% - 40px); text-align: center;
+            padding: 10px 18px; border-radius: 999px;
+            background: rgba(10, 20, 45, 0.88); color: #fff; font-size: 13px; font-weight: 600;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .map-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        .map-tools a {
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; font-size: 14px; cursor: pointer; color: #1f2937;
+        }
+        .map-tools a:hover { color: var(--brand); }
+        .map-tools a.active { background: #dbeafe; color: var(--brand); }
+        .leaflet-control-scale-line { font-weight: 600; }
+        .user-location-dot { background: #2563eb; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3); }
+
+        .map-container.fullscreen {
+            position: fixed; inset: 0; z-index: 3000; border-radius: 0; border: none;
+            display: flex; flex-direction: column; box-shadow: none;
+        }
+        .map-container.fullscreen .map-layout-wrapper { flex: 1; height: auto; min-height: 0; }
+        body.no-scroll { overflow: hidden; }
+
+        .map-search-result-item { width: 100%; background: none; border: none; border-bottom: 1px solid var(--border); text-align: left; color: var(--text-primary); font-family: inherit; }
+        .header:not(.scrolled) { text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55); }
+        .header:not(.scrolled) .nav-link { opacity: 1; }
+
         /* ========== RESPONSIVE ========== */
         @media (max-width: 860px) {
             .hero-inner { grid-template-columns: 1fr; gap: 36px; }
@@ -841,10 +957,11 @@
             .info-sidebar.open { width: 100%; max-height: 2400px; padding: 20px; border-top-width: 1px; overflow-y: auto; }
 
             .slider { aspect-ratio: 16 / 10; }
+            .map-container.fullscreen .map-stage { flex: 1; height: auto; min-height: 160px; max-height: none; }
+            .map-container.fullscreen .info-sidebar.open { max-height: 52vh; }
         }
 
         @media (max-width: 700px) {
-            .hero-bg { background-image: url('img/hero-sm.webp'); background-position: 38% center; }
             .nav-link { display: none; }
         }
 
@@ -856,7 +973,7 @@
             .theme-toggle { width: 38px; height: 38px; }
 
             .hero { min-height: 0; }
-            .hero-inner { padding: 104px 18px 60px; }
+            .hero-inner { padding: 104px 18px 78px; }
             .hero-eyebrow { font-size: 10.5px; letter-spacing: 1.2px; padding: 7px 13px; }
             .hero-cta .btn-hero { flex: 1 1 100%; justify-content: center; }
             .stat-card { padding: 12px 0; gap: 10px; }
@@ -877,6 +994,15 @@
             .map-legend { bottom: 12px; left: 12px; padding: 10px 12px; font-size: 11px; }
             .legend-title { font-size: 10px; }
             .map-reset-btn { top: 10px; right: 10px; padding: 8px 13px; }
+
+            .hero-controls { bottom: 14px; }
+            .hero-controls-inner { padding: 0 18px; }
+            .hero-dot { width: 38px; }
+            .map-container.fullscreen .map-toolbar { flex-direction: row; flex-wrap: nowrap; align-items: center; overflow-x: auto; padding: 10px 12px; gap: 18px; }
+            .map-container.fullscreen .toolbar-group { flex-wrap: nowrap; flex-shrink: 0; }
+            .map-container.fullscreen .filter-chip { white-space: nowrap; }
+            .map-container.fullscreen .map-stage { flex: 1; height: auto; min-height: 160px; max-height: none; }
+            .map-container.fullscreen .info-sidebar.open { max-height: 52vh; }
             .info-sidebar.open { padding: 16px; }
 
             .lb-btn { width: 42px; height: 42px; }
@@ -890,13 +1016,18 @@
 
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
-            .hero-bg { animation: none; opacity: 1; transform: none; }
+            .hero-slides { animation: none; opacity: 1; }
+            .hero-slide.active img, .hero-slide.leaving img { animation: none; }
+            .hero-dot.active::after { animation: none; width: 100%; }
+            .map-loader .spinner { animation-duration: 3s; }
             .rv, .hero h1 .w { animation: none; opacity: 1; transform: none; filter: none; }
             .slider-track { transition: none; }
         }
     </style>
 </head>
 <body>
+    <a class="skip-link" href="#mapa">Saltar al mapa</a>
+    <noscript><p style="padding:90px 20px 20px;text-align:center;font-family:sans-serif;">Este sitio necesita JavaScript para mostrar el mapa de la red de desagües.</p></noscript>
 
     <!-- ========== HEADER ========== -->
     <header class="header" id="header">
@@ -921,7 +1052,24 @@
 
     <!-- ========== HERO ========== -->
     <section class="hero" id="inicio">
-        <div class="hero-bg" role="img" aria-label="Vista aérea del centro de Río Tercero"></div>
+        <div class="hero-slides" id="hero-slides" role="group" aria-roledescription="carrusel" aria-label="Fotos de la red de desagües de Río Tercero">
+            <picture class="hero-slide active" style="--pos: 50% 55%">
+                <source media="(max-width: 700px)" srcset="img/hero-1-sm.webp">
+                <img src="img/hero-1.webp" alt="Camino y desagüe pluvial en el ingreso industrial de Río Tercero, vista aérea" fetchpriority="high" decoding="async">
+            </picture>
+            <picture class="hero-slide" style="--pos: 55% 60%">
+                <source media="(max-width: 700px)" srcset="img/hero-2-sm.webp">
+                <img src="img/hero-2.webp" alt="Canal de hormigón junto a una calle arbolada" loading="lazy" decoding="async">
+            </picture>
+            <picture class="hero-slide" style="--pos: 50% 62%">
+                <source media="(max-width: 700px)" srcset="img/hero-3-sm.webp">
+                <img src="img/hero-3.webp" alt="Cuneta de desagüe entre árboles y pasto" loading="lazy" decoding="async">
+            </picture>
+            <picture class="hero-slide" style="--pos: 50% 55%">
+                <source media="(max-width: 700px)" srcset="img/hero-4-sm.webp">
+                <img src="img/hero-4.webp" alt="Ruta y terrenos del sector industrial, vista aérea" loading="lazy" decoding="async">
+            </picture>
+        </div>
         <div class="hero-overlay"></div>
 
         <div class="hero-inner">
@@ -959,6 +1107,17 @@
                 </div>
             </div>
         </div>
+        <div class="hero-controls">
+            <div class="hero-controls-inner">
+                <div class="hero-dots" id="hero-dots" role="group" aria-label="Elegir foto">
+                    <button class="hero-dot active" type="button" aria-label="Foto 1 de 4" aria-current="true"></button>
+                    <button class="hero-dot" type="button" aria-label="Foto 2 de 4"></button>
+                    <button class="hero-dot" type="button" aria-label="Foto 3 de 4"></button>
+                    <button class="hero-dot" type="button" aria-label="Foto 4 de 4"></button>
+                </div>
+                <button class="hero-pause" id="hero-pause" type="button" aria-label="Pausar carrusel" title="Pausar"><i class="fa-solid fa-pause"></i></button>
+            </div>
+        </div>
     </section>
 
     <!-- ========== MAPA ========== -->
@@ -969,43 +1128,49 @@
             <p>Tocá un tramo del mapa o buscalo por nombre para ver su ficha técnica y las fotos del relevamiento.</p>
         </div>
 
-        <div class="map-container">
+        <div class="map-container" id="map-container">
             <div class="map-toolbar">
-                <div class="toolbar-group">
-                    <span class="toolbar-title">Tipo</span>
-                    <button class="filter-chip active" data-filter="all">Todos</button>
-                    <button class="filter-chip" data-filter="subterraneo">Subterráneos</button>
-                    <button class="filter-chip" data-filter="superficial">Superficiales</button>
-                    <button class="filter-chip" data-filter="lagunas">Lagunas de Retención</button>
+                <div class="toolbar-group" role="group" aria-labelledby="tb-tipo">
+                    <span class="toolbar-title" id="tb-tipo">Tipo</span>
+                    <button class="filter-chip active" data-filter="all" aria-pressed="true">Todos</button>
+                    <button class="filter-chip" data-filter="subterraneo" aria-pressed="false">Subterráneos</button>
+                    <button class="filter-chip" data-filter="superficial" aria-pressed="false">Superficiales</button>
+                    <button class="filter-chip" data-filter="lagunas" aria-pressed="false">Lagunas de Retención</button>
                 </div>
 
-                <div class="toolbar-group">
-                    <span class="toolbar-title">Capas</span>
-                    <button class="filter-chip active" id="layer-btn-lines" onclick="toggleMapLayer('lines')"><i class="fa-solid fa-route"></i> Red</button>
+                <div class="toolbar-group" role="group" aria-labelledby="tb-capas">
+                    <span class="toolbar-title" id="tb-capas">Capas</span>
+                    <button class="filter-chip active" id="layer-btn-lines" aria-pressed="true" onclick="toggleMapLayer('lines')"><i class="fa-solid fa-route"></i> Red</button>
                 </div>
 
-                <div class="toolbar-group">
-                    <span class="toolbar-title">Mapa base</span>
-                    <button class="filter-chip active" id="btn-map-street" onclick="switchBaseMap('street')">Callejero</button>
-                    <button class="filter-chip" id="btn-map-sat" onclick="switchBaseMap('sat')">Satelital</button>
-                    <button class="filter-chip" id="btn-map-topo" onclick="switchBaseMap('topo')">Relieve</button>
+                <div class="toolbar-group" role="group" aria-labelledby="tb-base">
+                    <span class="toolbar-title" id="tb-base">Mapa base</span>
+                    <button class="filter-chip active" id="btn-map-street" aria-pressed="true" onclick="switchBaseMap('street')">Callejero</button>
+                    <button class="filter-chip" id="btn-map-sat" aria-pressed="false" onclick="switchBaseMap('sat')">Satelital</button>
+                    <button class="filter-chip" id="btn-map-topo" aria-pressed="false" onclick="switchBaseMap('topo')">Relieve</button>
                 </div>
 
-                <div class="toolbar-group">
-                    <span class="toolbar-title">Exportar</span>
+                <div class="toolbar-group" role="group" aria-labelledby="tb-exp">
+                    <span class="toolbar-title" id="tb-exp">Exportar</span>
                     <button class="filter-chip" onclick="exportKML()"><i class="fa-solid fa-file-export"></i> KML</button>
                 </div>
             </div>
 
             <div class="map-layout-wrapper">
                 <div class="map-stage">
-                    <div id="map"></div>
+                    <div id="map" role="region" aria-label="Mapa de la red de desagües pluviales"></div>
+
+                    <!-- Pantalla de carga -->
+                    <div class="map-loader" id="map-loader" role="status"><div class="spinner"></div><span>Cargando mapa…</span></div>
+                    <div class="map-toast" id="map-toast" role="status" aria-live="polite"></div>
 
                     <!-- BUSCADOR -->
                     <div class="map-search-box">
                         <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted)"></i>
-                        <input type="text" id="map-search-input" placeholder="Buscar desagüe..." oninput="debounceSearch(this.value)">
-                        <div class="map-search-results" id="map-search-results"></div>
+                        <input type="text" id="map-search-input" placeholder="Buscar desagüe..." aria-label="Buscar desagüe por nombre o tramo" autocomplete="off"
+                               oninput="debounceSearch(this.value)" onfocus="executeSearch(this.value, true)" onkeydown="searchKeydown(event)">
+                        <div class="map-search-results" id="map-search-results" role="listbox" aria-label="Resultados"></div>
+                        <div class="sr-only" id="search-status" aria-live="polite"></div>
                     </div>
 
                     <!-- LEYENDA DEL MAPA -->
@@ -1022,6 +1187,10 @@
                         <div class="legend-item">
                             <span class="legend-color" style="background-color: #eab308; border-radius: 50%; width: 10px; height: 10px; margin: 0 3px;"></span>
                             <span>Laguna de Retención</span>
+                        </div>
+                        <div class="legend-item" id="legend-approx" style="display:none;">
+                            <span class="legend-color" style="background: repeating-linear-gradient(90deg, #94a3b8 0 4px, transparent 4px 8px);"></span>
+                            <span>Ubicación aproximada</span>
                         </div>
                     </div>
 
@@ -1054,7 +1223,7 @@
                             <button class="slider-arrow prev" id="gallery-prev" onclick="slideBy(-1)" aria-label="Foto anterior"><i class="fa-solid fa-chevron-left"></i></button>
                             <button class="slider-arrow next" id="gallery-next" onclick="slideBy(1)" aria-label="Foto siguiente"><i class="fa-solid fa-chevron-right"></i></button>
                             <span class="slider-hint"><i class="fa-solid fa-expand"></i> Ampliar</span>
-                            <span class="slider-count" id="gallery-count">1 / 1</span>
+                            <span class="slider-count" id="gallery-count" aria-live="polite">1 / 1</span>
                         </div>
                         <div class="slider-thumbs" id="gallery-thumbs"></div>
                     </div>
@@ -1078,7 +1247,7 @@
     </main>
 
     <!-- ========== LIGHTBOX ========== -->
-    <div class="lightbox-modal" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-modal" id="lightbox" role="dialog" aria-modal="true" aria-label="Visor de fotos" onclick="closeLightbox()">
         <button class="lb-btn lb-close" onclick="event.stopPropagation(); closeLightbox()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
         <button class="lb-btn lb-arrow prev" id="lb-prev" onclick="event.stopPropagation(); lightboxBy(-1)" aria-label="Foto anterior"><i class="fa-solid fa-chevron-left"></i></button>
         <figure class="lb-figure" onclick="event.stopPropagation()">
@@ -1099,7 +1268,7 @@
                         <span>Municipalidad de Río Tercero</span>
                     </div>
                 </div>
-                <p class="footer-about">Relevamiento 2026 de la red de desagües de la ciudad. Consultá el recorrido, las características técnicas y el sentido de escurrimiento de cada tramo.</p>
+                <p class="footer-about">Relevamiento de la red de desagües de la ciudad. Consultá el recorrido, las características técnicas y el sentido de escurrimiento de cada tramo.</p>
             </div>
         </div>
 
@@ -2374,19 +2543,114 @@
         };
         baseLayers.street.addTo(map);
 
+        // ===== Mapa: carga, escala, pantalla completa, ubicación y gesto de 2 dedos =====
+        const mapContainerEl = document.getElementById('map-container');
+        const mapLoaderEl = document.getElementById('map-loader');
+        const mapToastEl = document.getElementById('map-toast');
+        let toastTimer = null;
+
+        function showMapToast(msg, ms = 2400) {
+            mapToastEl.textContent = msg;
+            mapToastEl.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => mapToastEl.classList.remove('show'), ms);
+        }
+
+        function hideMapLoader() { mapLoaderEl.classList.add('hidden'); }
+        setTimeout(hideMapLoader, 9000); // red de seguridad
+
+        L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+        // En celulares y tablets un dedo desplaza la página; con dos dedos se mueve/zoomea el mapa.
+        const isTouchDevice = L.Browser.mobile || window.matchMedia('(pointer: coarse)').matches;
+        if (isTouchDevice) {
+            map.dragging.disable();
+            let lastHint = 0;
+            document.querySelector('.map-stage').addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && !mapContainerEl.classList.contains('fullscreen') && Date.now() - lastHint > 6000) {
+                    lastHint = Date.now();
+                    showMapToast('Usá dos dedos para mover el mapa');
+                }
+            }, { passive: true });
+        }
+
+        function toggleMapFullscreen(force) {
+            const on = typeof force === 'boolean' ? force : !mapContainerEl.classList.contains('fullscreen');
+            mapContainerEl.classList.toggle('fullscreen', on);
+            document.body.classList.toggle('no-scroll', on);
+            const btn = document.getElementById('map-fs-btn');
+            if (btn) {
+                const label = on ? 'Salir de pantalla completa' : 'Pantalla completa';
+                btn.innerHTML = `<i class="fa-solid ${on ? 'fa-compress' : 'fa-expand'}"></i>`;
+                btn.title = label;
+                btn.setAttribute('aria-label', label);
+                btn.classList.toggle('active', on);
+            }
+            if (isTouchDevice) { if (on) map.dragging.enable(); else map.dragging.disable(); }
+            setTimeout(() => {
+                map.invalidateSize();
+                if (currentSelected) map.fitBounds(L.latLngBounds(currentSelected.puntos), { padding: [50, 50] });
+            }, 80);
+        }
+
+        let userLocationLayer = null;
+        function locateUser() {
+            if (!navigator.geolocation) return showMapToast('Tu navegador no permite obtener la ubicación');
+            showMapToast('Buscando tu ubicación…', 5000);
+            map.locate({ setView: false, enableHighAccuracy: true, timeout: 12000 });
+        }
+        map.on('locationfound', (e) => {
+            const cityBounds = L.latLngBounds(desagues.reduce((a, d) => a.concat(d.puntos), [])).pad(0.6);
+            if (!cityBounds.contains(e.latlng)) return showMapToast('Parece que estás fuera de Río Tercero', 3200);
+            if (userLocationLayer) map.removeLayer(userLocationLayer);
+            userLocationLayer = L.layerGroup([
+                L.circle(e.latlng, { radius: e.accuracy / 2, weight: 1, color: '#2563eb', fillOpacity: 0.1, interactive: false }),
+                L.marker(e.latlng, {
+                    icon: L.divIcon({ className: '', html: '<div class="user-location-dot" style="width:16px;height:16px;"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+                    interactive: false, keyboard: false
+                })
+            ]).addTo(map);
+            map.flyTo(e.latlng, Math.max(map.getZoom(), 16));
+            showMapToast('Esta es tu ubicación', 2200);
+        });
+        map.on('locationerror', () => showMapToast('No pudimos obtener tu ubicación. Revisá los permisos del navegador.', 3800));
+
+        const MapTools = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd() {
+                const bar = L.DomUtil.create('div', 'leaflet-bar map-tools');
+                const add = (id, icon, title, fn) => {
+                    const a = L.DomUtil.create('a', '', bar);
+                    a.id = id; a.href = '#'; a.title = title;
+                    a.setAttribute('role', 'button');
+                    a.setAttribute('aria-label', title);
+                    a.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+                    L.DomEvent.on(a, 'click', (ev) => { L.DomEvent.stop(ev); fn(); });
+                };
+                add('map-fs-btn', 'fa-expand', 'Pantalla completa', () => toggleMapFullscreen());
+                add('map-loc-btn', 'fa-location-crosshairs', 'Mi ubicación', locateUser);
+                L.DomEvent.disableClickPropagation(bar);
+                return bar;
+            }
+        });
+        new MapTools().addTo(map);
+
         function switchBaseMap(type) {
             Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
             baseLayers[type].addTo(map);
             document.querySelectorAll('.toolbar-group button').forEach(b => {
-                if (b.id && b.id.startsWith('btn-map-')) b.classList.remove('active');
+                if (b.id && b.id.startsWith('btn-map-')) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); }
             });
-            document.getElementById(`btn-map-${type}`).classList.add('active');
+            const activeBtn = document.getElementById(`btn-map-${type}`);
+            activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-pressed', 'true');
         }
 
         function toggleMapLayer(layerType) {
             if (layerType === 'lines') {
                 showLines = !showLines;
                 document.getElementById('layer-btn-lines').classList.toggle('active', showLines);
+                document.getElementById('layer-btn-lines').setAttribute('aria-pressed', String(showLines));
             }
             renderDesagues();
         }
@@ -2630,10 +2894,9 @@
                 const slide = document.createElement('div');
                 slide.className = 'slider-slide';
                 const img = document.createElement('img');
-                img.src = url;
+                img.dataset.src = url; // se carga al acercarse (foto actual y vecinas)
                 img.alt = `${galleryState.title} (foto ${i + 1} de ${images.length})`;
                 img.draggable = false;
-                if (i > 1) img.loading = 'lazy';
                 slide.appendChild(img);
                 slide.onclick = () => { if (!sliderSwiped) openLightbox(i); };
                 track.appendChild(slide);
@@ -2653,8 +2916,16 @@
             updateSliderUI();
         }
 
+        function loadSlide(i) {
+            const n = galleryState.images.length;
+            if (!n) return;
+            const img = document.getElementById('gallery-track').children[((i % n) + n) % n]?.querySelector('img');
+            if (img && !img.getAttribute('src')) img.src = img.dataset.src;
+        }
+
         function updateSliderUI() {
             const { images, index } = galleryState;
+            [index - 1, index, index + 1].forEach(loadSlide);
             document.getElementById('gallery-track').style.transform = `translateX(-${index * 100}%)`;
             document.getElementById('gallery-count').textContent = `${index + 1} / ${images.length}`;
             const thumbs = document.getElementById('gallery-thumbs');
@@ -2672,11 +2943,13 @@
 
         function slideBy(d) { goToSlide(galleryState.index + d); }
 
+        let lightboxReturnFocus = null;
         function openLightbox(i) {
             if (typeof i === 'number') galleryState.index = i;
-            const lb = document.getElementById('lightbox');
-            lb.classList.add('open');
+            lightboxReturnFocus = document.activeElement;
+            document.getElementById('lightbox').classList.add('open');
             updateLightbox();
+            document.querySelector('.lb-close').focus();
         }
 
         function updateLightbox() {
@@ -2688,6 +2961,9 @@
             document.getElementById('lightbox-caption').textContent = multi ? `${title} · ${index + 1} / ${images.length}` : title;
             document.getElementById('lb-prev').style.display = multi ? '' : 'none';
             document.getElementById('lb-next').style.display = multi ? '' : 'none';
+            if (multi) { // precarga las fotos vecinas para que el cambio sea instantáneo
+                [index + 1, index - 1].forEach(j => { new Image().src = images[((j % images.length) + images.length) % images.length]; });
+            }
         }
 
         function lightboxBy(d) {
@@ -2697,12 +2973,22 @@
 
         function closeLightbox() {
             document.getElementById('lightbox').classList.remove('open');
+            if (lightboxReturnFocus && lightboxReturnFocus.focus) lightboxReturnFocus.focus();
+            lightboxReturnFocus = null;
         }
 
         // Teclado: flechas + Esc
         document.addEventListener('keydown', (e) => {
             const lbOpen = document.getElementById('lightbox').classList.contains('open');
             if (e.key === 'Escape' && lbOpen) return closeLightbox();
+            if (e.key === 'Escape' && mapContainerEl.classList.contains('fullscreen')) return toggleMapFullscreen(false);
+            if (e.key === 'Tab' && lbOpen) { // el foco no se escapa del visor
+                const btns = [...document.querySelectorAll('#lightbox .lb-btn')].filter(b => b.offsetParent !== null);
+                const first = btns[0], last = btns[btns.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                return;
+            }
             const sliderFocused = document.activeElement === document.getElementById('gallery-slider');
             if (!lbOpen && !sliderFocused) return;
             if (e.key === 'ArrowLeft') { e.preventDefault(); lbOpen ? lightboxBy(-1) : slideBy(-1); }
@@ -2733,31 +3019,68 @@
             searchTimeout = setTimeout(() => executeSearch(val), 350);
         }
 
-        function executeSearch(q) {
+        function executeSearch(q, showAll) {
             const resultsEl = document.getElementById('map-search-results');
-            const query = q.trim();
-            if (!query) return resultsEl.classList.remove('visible');
-
-            let html = '';
-
-            const localMatches = desagues
-                .map((d, idx) => ({ d, idx }))
-                .filter(({ d }) => d.nombre.toLowerCase().includes(query.toLowerCase()) || d.tramo.toLowerCase().includes(query.toLowerCase()));
-            localMatches.forEach(({ d, idx }) => {
-                html += `
-                    <div class="map-search-result-item" onclick="selectDesague(desagues[${idx}]); document.getElementById('map-search-results').classList.remove('visible');">
-                        <span><i class="fa-solid fa-water" style="color:${colores[d.tipo]}"></i> N.º ${d.id} — ${d.nombre}</span>
-                        <small style="color:var(--text-muted)">Desague</small>
-                    </div>`;
-            });
-
-            if (html) {
-                resultsEl.innerHTML = html;
-                resultsEl.classList.add('visible');
-            } else {
+            const status = document.getElementById('search-status');
+            const query = (q || '').trim().toLowerCase();
+            if (!query && !showAll) {
                 resultsEl.classList.remove('visible');
+                return;
+            }
+
+            const matches = desagues
+                .map((d, idx) => ({ d, idx }))
+                .filter(({ d }) => !query
+                    || d.nombre.toLowerCase().includes(query)
+                    || (d.tramo || '').toLowerCase().includes(query)
+                    || String(d.id).toLowerCase() === query);
+
+            if (!matches.length) {
+                resultsEl.innerHTML = '<div class="map-search-result-item" style="cursor:default; color:var(--text-muted);">Sin resultados</div>';
+                resultsEl.classList.add('visible');
+                status.textContent = 'Sin resultados';
+                return;
+            }
+
+            resultsEl.innerHTML = matches.map(({ d, idx }) => `
+                <button type="button" role="option" class="map-search-result-item" onclick="pickSearchResult(${idx})">
+                    <span><i class="fa-solid fa-water" style="color:${colores[d.tipo]}"></i> N.º ${d.id} — ${d.nombre}</span>
+                    <small style="color:var(--text-muted)">${d.tipo === 'subterraneo' ? 'Subterráneo' : 'Superficial'}</small>
+                </button>`).join('');
+            resultsEl.classList.add('visible');
+            status.textContent = `${matches.length} resultado${matches.length === 1 ? '' : 's'}`;
+        }
+
+        function pickSearchResult(idx) {
+            document.getElementById('map-search-results').classList.remove('visible');
+            document.getElementById('map-search-input').blur();
+            selectDesague(desagues[idx]);
+        }
+
+        function searchKeydown(e) {
+            const resultsEl = document.getElementById('map-search-results');
+            if (e.key === 'ArrowDown') {
+                const first = resultsEl.querySelector('button');
+                if (first) { e.preventDefault(); first.focus(); }
+            } else if (e.key === 'Escape') {
+                resultsEl.classList.remove('visible');
+            } else if (e.key === 'Enter') {
+                const items = resultsEl.querySelectorAll('button');
+                if (items.length === 1) items[0].click();
             }
         }
+
+        document.getElementById('map-search-results').addEventListener('keydown', (e) => {
+            const items = [...e.currentTarget.querySelectorAll('button')];
+            const i = items.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (items[i + 1]) items[i + 1].focus(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); if (i > 0) items[i - 1].focus(); else document.getElementById('map-search-input').focus(); }
+            else if (e.key === 'Escape') { e.currentTarget.classList.remove('visible'); document.getElementById('map-search-input').focus(); }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.map-search-box')) document.getElementById('map-search-results').classList.remove('visible');
+        });
 
         function resetView() {
             document.getElementById('info-sidebar').classList.remove('open');
@@ -2802,41 +3125,230 @@
             statsDelay = 0;
         }
 
+        // ===== Carrusel del hero (se pasa solo; hay pausa y puntos para elegir) =====
+        (function heroCarousel() {
+            const hero = document.getElementById('inicio');
+            const slides = [...document.querySelectorAll('.hero-slide')];
+            const dots = [...document.querySelectorAll('.hero-dot')];
+            const pauseBtn = document.getElementById('hero-pause');
+            const DURATION = 6500;
+            let current = 0, timer = null, startedAt = 0, remaining = DURATION;
+            let userPaused = reduceMotion, tabHidden = false;
+            hero.style.setProperty('--dur', DURATION / 1000 + 's');
+
+            function schedule(ms) {
+                clearTimeout(timer);
+                remaining = ms;
+                startedAt = Date.now();
+                if (!isPaused()) timer = setTimeout(() => show(current + 1), ms);
+            }
+            const isPaused = () => userPaused || tabHidden;
+
+            function show(n) {
+                const prev = slides[current];
+                prev.classList.remove('active');
+                prev.classList.add('leaving');
+                setTimeout(() => prev.classList.remove('leaving'), 1600);
+
+                current = (n + slides.length) % slides.length;
+                slides[current].classList.remove('leaving');
+                slides[current].classList.add('active');
+
+                dots.forEach((d, i) => {
+                    d.classList.remove('active');
+                    d.removeAttribute('aria-current');
+                    if (i === current) d.setAttribute('aria-current', 'true');
+                });
+                void hero.offsetWidth; // reinicia la barra de progreso
+                dots[current].classList.add('active');
+                schedule(DURATION);
+            }
+
+            function syncPause() {
+                hero.classList.toggle('paused', isPaused());
+                if (isPaused()) {
+                    clearTimeout(timer);
+                    remaining = Math.max(remaining - (Date.now() - startedAt), 300);
+                } else {
+                    schedule(remaining);
+                }
+            }
+
+            dots.forEach((d, i) => d.addEventListener('click', () => { if (i !== current) show(i); else schedule(DURATION); }));
+
+            pauseBtn.addEventListener('click', () => {
+                userPaused = !userPaused;
+                pauseBtn.innerHTML = `<i class="fa-solid ${userPaused ? 'fa-play' : 'fa-pause'}"></i>`;
+                const label = userPaused ? 'Reanudar carrusel' : 'Pausar carrusel';
+                pauseBtn.setAttribute('aria-label', label);
+                pauseBtn.title = label.replace(' carrusel', '');
+                syncPause();
+            });
+
+            document.addEventListener('visibilitychange', () => { tabHidden = document.hidden; syncPause(); });
+
+            // Deslizar con el dedo sobre el hero
+            let x0 = null;
+            hero.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+            hero.addEventListener('touchend', (e) => {
+                if (x0 === null) return;
+                const dx = e.changedTouches[0].clientX - x0;
+                x0 = null;
+                if (Math.abs(dx) > 60) show(current + (dx < 0 ? 1 : -1));
+            }, { passive: true });
+
+            if (userPaused) {
+                pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                pauseBtn.setAttribute('aria-label', 'Reanudar carrusel');
+                hero.classList.add('paused');
+            }
+            schedule(DURATION);
+        })();
+
         // Header: transparente sobre el hero, vidrio esmerilado al hacer scroll
         const headerEl = document.getElementById('header');
         const syncHeader = () => headerEl.classList.toggle('scrolled', window.scrollY > 40);
         window.addEventListener('scroll', syncHeader, { passive: true });
         syncHeader();
 
+        // Croquis de ubicación (SVG, sin necesidad de bajar mapas): muestra la red alrededor del tramo,
+        // el tramo resaltado y flechas con el sentido de escurrimiento.
+        function buildLocationSketch(sel) {
+            const W = 640, H = 300;
+            const selPts = sel.puntos;
+            let minLat = Math.min(...selPts.map(p => p[0])), maxLat = Math.max(...selPts.map(p => p[0]));
+            let minLng = Math.min(...selPts.map(p => p[1])), maxLng = Math.max(...selPts.map(p => p[1]));
+            const midLat = (minLat + maxLat) / 2, kx = Math.cos(midLat * Math.PI / 180);
+            // Se expande el recuadro para dar contexto y mantener la proporción del croquis
+            let wM = Math.max((maxLng - minLng) * kx, 0.0045), hM = Math.max(maxLat - minLat, 0.0045 * H / W);
+            wM *= 1.5; hM *= 1.5;
+            if (wM / hM > W / H) hM = wM * H / W; else wM = hM * W / H;
+            const cx = (minLng + maxLng) / 2, cy = midLat;
+            const sx = W / wM, sy = H / hM;
+            const proj = (p) => [W / 2 + (p[1] - cx) * kx * sx, H / 2 - (p[0] - cy) * sy];
+            const poly = (pts, attrs) => `<polyline points="${pts.map(p => proj(p).map(v => v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke-linecap="round" stroke-linejoin="round" ${attrs}/>`;
+
+            const others = desagues.filter(d => d !== sel).map(d => poly(d.puntos, 'stroke="#cbd5e1" stroke-width="3"')).join('');
+            const color = colores[sel.tipo];
+
+            const arrowAt = (pts, frac) => { // flecha en la fracción `frac` del recorrido, apuntando de pts[0] a pts[n-1]
+                const ll = pts.map(p => L.latLng(p[0], p[1]));
+                const segs = ll.slice(1).map((p, i) => ll[i].distanceTo(p));
+                let target = segs.reduce((a, b) => a + b, 0) * frac;
+                for (let i = 0; i < segs.length; i++) {
+                    if (target <= segs[i] || i === segs.length - 1) {
+                        const t = segs[i] ? Math.min(target / segs[i], 1) : 0;
+                        const a = proj(pts[i]), b = proj(pts[i + 1]);
+                        const x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t;
+                        const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+                        return `<polygon points="-11,-9 11,0 -11,9" fill="${color}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${ang.toFixed(1)})"/>`;
+                    }
+                    target -= segs[i];
+                }
+                return '';
+            };
+
+            let arrows;
+            if (sel.bidireccional) {
+                const [first, second] = splitPointsAtMidpoint(sel.puntos);
+                arrows = arrowAt(first.slice().reverse(), 0.5) + arrowAt(second, 0.5);
+            } else {
+                arrows = arrowAt(sel.puntos, 0.25) + arrowAt(sel.puntos, 0.75);
+            }
+
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block; width:100%; height:auto;">
+                <rect width="${W}" height="${H}" fill="#f1f5f9"/>
+                ${others}
+                ${poly(selPts, 'stroke="#ffffff" stroke-width="11"')}
+                ${poly(selPts, `stroke="${color}" stroke-width="7"`)}
+                ${arrows}
+                <g transform="translate(${W - 34},34)"><circle r="19" fill="#fff" stroke="#cbd5e1"/><polygon points="0,-13 7,7 0,3 -7,7" fill="#1e3a8a"/></g>
+                <text x="${W - 34}" y="62" font-size="11" font-weight="700" text-anchor="middle" fill="#1e3a8a" font-family="Inter, sans-serif">N</text>
+            </svg>`;
+        }
+
+        function preloadImage(url) {
+            return new Promise((resolve) => {
+                const im = new Image();
+                im.onload = () => resolve(true);
+                im.onerror = () => resolve(false);
+                im.src = url;
+            });
+        }
+
         async function exportPDF() {
             if (!currentSelected) return;
+            const btn = document.querySelector('[onclick="exportPDF()"]');
+            const btnHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando PDF…'; }
             try {
                 const tipoLabel = currentSelected.tipo === 'subterraneo' ? 'Subterráneo' : 'Superficial';
                 const cellStyle = 'padding:7px 0; border-bottom:1px solid #e5e7eb;';
-                const imgUrl = currentSelected.galeria && currentSelected.galeria.length > 0 ? currentSelected.galeria[0] : null;
+                const photos = (currentSelected.galeria || []).slice(0, 8);
+                await Promise.all(photos.map(preloadImage));
+
+                // El PDF se arma "por hoja": cada hoja es un bloque con alto fijo menor al de una A4 y entre
+                // hojas va un salto de página explícito. Así nada queda cortado entre dos páginas.
+                const PAGE_W = 710;            // ancho del contenido en px (la hoja A4 con márgenes de 10 mm mide ~718 px)
+                const GAP = 14;
+                const PER_PAGE = 6;            // fotos por hoja (2 columnas x 3 filas)
+                const pageBreak = '<div class="html2pdf__page-break"></div>';
+                const fichaTitle = `N.º ${currentSelected.id} — ${currentSelected.nombre}`;
+
+                const photoCell = (url, w, h) => `<div style="display:inline-block; vertical-align:top; width:${w}px; height:${h}px; border-radius:6px; border:1px solid #e5e7eb; background:#f1f5f9 url('${url}') center / cover no-repeat;"></div>`;
+
+                const photoPages = [];
+                for (let i = 0; i < photos.length; i += PER_PAGE) photoPages.push(photos.slice(i, i + PER_PAGE));
+
+                const photosHtml = photoPages.map((chunk, p) => {
+                    const single = photos.length === 1;
+                    const cellW = single ? PAGE_W : (PAGE_W - GAP) / 2;
+                    const cellH = Math.round(cellW * 2 / 3);
+                    const cells = chunk.map((u, i) => `<span style="display:inline-block; margin:0 ${i % 2 === 0 && !single ? GAP : 0}px ${GAP}px 0;">${photoCell(u, cellW, cellH)}</span>`).join('');
+                    return `${pageBreak}
+                        <div>
+                            <h3 style="color:#1e40af; font-size:15px; border-bottom:2px solid #2563eb; padding-bottom:6px; margin-bottom:14px;">Ficha N.º ${currentSelected.id} — ${currentSelected.nombre} <span style="font-weight:400; color:#6b7280; font-size:12px;">· Fotos del relevamiento${photoPages.length > 1 ? ` (${p + 1}/${photoPages.length})` : ''}</span></h3>
+                            <div style="font-size:0; line-height:0;">${cells}</div>
+                        </div>`;
+                }).join('');
 
                 const pdfContainer = document.createElement('div');
-                pdfContainer.style.padding = '30px';
+                pdfContainer.style.width = PAGE_W + 'px';
                 pdfContainer.style.fontFamily = 'Inter, sans-serif';
                 pdfContainer.style.color = '#111827';
                 pdfContainer.innerHTML = `
-                    <h2 style="color:#1e40af; border-bottom:2px solid #2563eb; padding-bottom:8px;">MUNICIPALIDAD DE RÍO TERCERO</h2>
-                    <h3 style="margin-top:12px;">Ficha Técnica: N.º ${currentSelected.id} — ${currentSelected.nombre}</h3>
-                    <p style="color:#374151; font-size:13px;">${currentSelected.tramo || ''}</p>
-                    ${currentSelected.aproximado ? `<p style="color:#a16207; font-size:11px; font-weight:600;">⚠ Ubicación aproximada (pendiente relevamiento GPS de precisión)</p>` : ''}
-                    ${imgUrl ? `<img src="${imgUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:15px 0; border:1px solid #e5e7eb; display:block;" />` : ''}
-                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                        <tr><td style="${cellStyle} color:#6b7280;">Tipo</td><td style="${cellStyle} text-align:right;"><b>${tipoLabel}</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Longitud</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.largo} m</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Material</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.material || 'N/D'}</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Dimensión / Sección</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.dimension || 'N/D'}</b></td></tr>
-                        <tr><td style="${cellStyle} color:#6b7280;">Sentido de escurrimiento</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.sentido || 'N/D'}</b></td></tr>
-                    </table>
+                    <div>
+                        <h2 style="color:#1e40af; border-bottom:2px solid #2563eb; padding-bottom:8px;">MUNICIPALIDAD DE RÍO TERCERO</h2>
+                        <h3 style="margin-top:12px;">Ficha Técnica: ${fichaTitle}</h3>
+                        <p style="color:#374151; font-size:13px;">${currentSelected.tramo || ''}</p>
+                        ${currentSelected.aproximado ? `<p style="color:#a16207; font-size:11px; font-weight:600;">⚠ Ubicación aproximada (pendiente relevamiento GPS de precisión)</p>` : ''}
+                        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-top:10px;">
+                            <tr><td style="${cellStyle} color:#6b7280;">Tipo</td><td style="${cellStyle} text-align:right;"><b>${tipoLabel}</b></td></tr>
+                            <tr><td style="${cellStyle} color:#6b7280;">Longitud</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.largo} m</b></td></tr>
+                            <tr><td style="${cellStyle} color:#6b7280;">Material</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.material || 'N/D'}</b></td></tr>
+                            <tr><td style="${cellStyle} color:#6b7280;">Dimensión / Sección</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.dimension || 'N/D'}</b></td></tr>
+                            <tr><td style="${cellStyle} color:#6b7280;">Sentido de escurrimiento</td><td style="${cellStyle} text-align:right;"><b>${currentSelected.sentido || 'N/D'}</b></td></tr>
+                        </table>
+                        <h3 style="margin:22px 0 10px; color:#1e3a8a; font-size:14px;">Croquis de ubicación <span style="font-weight:400; color:#6b7280; font-size:11px;">(esquemático, sin escala · las flechas indican el sentido del escurrimiento)</span></h3>
+                        <div style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">${buildLocationSketch(currentSelected)}</div>
+                    </div>
+                    ${photosHtml}
                 `;
 
-                const opt = { margin: 10, filename: `Ficha_Desague_${currentSelected.id}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } };
+                const opt = {
+                    margin: [10, 10, 10, 10],
+                    filename: `Ficha_Desague_${currentSelected.id}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4' },
+                    pagebreak: { mode: ['legacy'] }
+                };
                 await html2pdf().set(opt).from(pdfContainer).save();
-            } catch (e) { console.error("Error PDF:", e); }
+            } catch (e) {
+                console.error("Error PDF:", e);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+            }
         }
 
         function escapeXml(str) {
@@ -2901,19 +3413,25 @@ ${placemarks}
 
         document.querySelectorAll('.filter-chip[data-filter]').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('.filter-chip[data-filter]').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.filter-chip[data-filter]').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
                 this.classList.add('active');
+                this.setAttribute('aria-pressed', 'true');
                 activeFilter = this.dataset.filter;
                 renderDesagues();
             });
         });
 
         renderDesagues();
+        if (desagues.some(d => d.aproximado)) document.getElementById('legend-approx').style.display = 'flex';
 
         function fitToAllData() {
             map.invalidateSize();
             const initialBounds = L.latLngBounds(desagues.reduce((acc, d) => acc.concat(d.puntos), []));
             map.fitBounds(initialBounds, { padding: [30, 30] });
+            // Se oculta la pantalla de carga cuando terminan de bajar los mosaicos del mapa
+            const activeBase = Object.values(baseLayers).find(l => map.hasLayer(l));
+            if (activeBase) activeBase.once('load', hideMapLoader);
+            setTimeout(hideMapLoader, 3500);
         }
         const deferredFit = () => requestAnimationFrame(() => requestAnimationFrame(fitToAllData));
         if (document.readyState === 'complete') {
